@@ -737,7 +737,7 @@ static void PrintHelp(void)
 	puts("\t-x\tcompile and link C files in one command (for cross compilation)");
 	puts("\t-h\tdisplay help and exit");
 	puts("");
-	puts("\tINFILE is expected to end with .obn, .Mod or .mod");
+	puts("\tINFILE is expected to end with .obn, .m, .Mod or .mod");
 }
 
 
@@ -813,7 +813,8 @@ int main(int argc, char *argv[])
 			if ((fileSuffix != NULL)
 					&& ((strcmp(fileSuffix, ".obn") == 0)
 						|| (strcmp(fileSuffix, ".Mod") == 0)
-						|| (strcmp(fileSuffix, ".mod") == 0))) {
+						|| (strcmp(fileSuffix, ".mod") == 0)
+						|| (strcmp(fileSuffix, ".m") == 0))) {
 				if (Files_Exists(arg)) {
 					inputFile = arg;
 				} else {

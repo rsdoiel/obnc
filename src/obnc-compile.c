@@ -41,7 +41,7 @@ static void PrintHelp(void)
 	puts("\t-l\tprint names of imported modules and exit");
 	puts("\t-v\tdisplay version and exit");
 	puts("");
-	puts("\tINFILE is expected to end with .obn, .Mod or .mod");
+	puts("\tINFILE is expected to end with .obn, .m, .Mod or .mod");
 }
 
 
@@ -115,7 +115,8 @@ int main(int argc, char *argv[])
 			if ((fileSuffix != NULL)
 					&& ((strcmp(fileSuffix, ".obn") == 0)
 						|| (strcmp(fileSuffix, ".Mod") == 0)
-						|| (strcmp(fileSuffix, ".mod") == 0))) {
+						|| (strcmp(fileSuffix, ".mod") == 0)
+						|| (strcmp(fileSuffix, ".m") == 0))) {
 				inputFile = arg;
 			} else {
 				Error_Handle(Util_String("missing or invalid filename extension: %s", arg));

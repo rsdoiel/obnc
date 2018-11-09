@@ -1,0 +1,16 @@
+#ifndef OBNC_CONFIG_H
+#define OBNC_CONFIG_H
+
+#ifndef OBNC_CONFIG_USE_LONG_INT
+#define OBNC_CONFIG_USE_LONG_INT 0
+#endif
+
+#ifndef OBNC_CONFIG_USE_LONG_REAL
+#define OBNC_CONFIG_USE_LONG_REAL 0
+#endif
+
+#ifndef OBNC_CONFIG_TARGET_EMB
+#define OBNC_CONFIG_TARGET_EMB 0
+#endif
+
+#endif
