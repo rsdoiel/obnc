@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -22,7 +22,7 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 
 void Generate_Init(void);
 
-void Generate_Open(const char moduleName[], int isEntryPoint);
+void Generate_Open(const char inputFile[], int isEntryPoint);
 
 void Generate_ModuleHeading(void);
 

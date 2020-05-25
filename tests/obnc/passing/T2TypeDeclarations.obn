@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -44,6 +44,7 @@ MODULE T2TypeDeclarations;
 			elem: INTEGER;
 			next: List;
 			next1: POINTER TO Node;
+			next2: List1;
 			p: PROCEDURE (n: Node; VAR n1: Node)
 		END;
 
@@ -57,6 +58,8 @@ MODULE T2TypeDeclarations;
 		ProcRecArray = ARRAY 10 OF RECORD
 			f: PROCEDURE (x: ArrayRecPtr): INTEGER
 		END;
+
+		T = RECORD i: INTEGER END;
 
 	VAR
 		s: String;
@@ -106,6 +109,18 @@ MODULE T2TypeDeclarations;
 	PROCEDURE NodeProc(n: Node; VAR n1: Node);
 	END NodeProc;
 
+	
+	PROCEDURE TestScope;
+		TYPE P = POINTER TO T;
+			T = RECORD f: INTEGER END;
+		VAR x: P;
+			y: T;
+	BEGIN
+		NEW(x);
+		x.i := 1;
+		y.f := 1
+	END TestScope;
+
 BEGIN
 	TestMemoryAllocation;
 	s1 := s;
@@ -116,9 +131,10 @@ BEGIN
 	t.content(IntegerNode).value := 1;
 	t.proc := TreeProc;
 	NEW(e);
-	n.elem := 0;
+	n.elem := left;
 	n.next := NIL;
 	n.p := NodeProc;
 	NEW(p);
-	a[0].f := NIL
+	a[0].f := NIL;
+	TestScope
 END T2TypeDeclarations.

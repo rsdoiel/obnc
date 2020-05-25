@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -25,6 +25,9 @@ MODULE A;
 		intConst* = 1;
 		realConst* = 2.3;
 		strConst* = "hello there";
+		nul* = 0X;
+		lf* = 0AX;
+		charMax* = 0FFX;
 		setConst* = {0, 2, 3, 5};
 
 	TYPE
@@ -49,6 +52,8 @@ MODULE A;
 		Proc4* = PROCEDURE (n, n1: Node): List;
 		Proc5* = PROCEDURE (n: Node; i: INTEGER);
 		Proc6* = PROCEDURE (n, n1: Node; i: INTEGER);
+		T* = B.T;
+		P1* = B.P1;
 
 	VAR
 		boolVar*: BOOLEAN;
@@ -75,6 +80,14 @@ MODULE A;
 
 	PROCEDURE R*(A: ARRAY OF ARRAY OF INTEGER);
 	END R;
+
+
+	PROCEDURE S*(x: T);
+	END S;
+
+
+	PROCEDURE S1*(VAR x: P1);
+	END S1;
 
 BEGIN
 		boolVar := boolConst;

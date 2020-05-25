@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -37,7 +37,7 @@ int Types_IsSet(Trees_Node type);
 
 int Types_IsString(Trees_Node type);
 
-OBNC_LONGI int Types_StringLength(Trees_Node stringType);
+OBNC_INTEGER Types_StringLength(Trees_Node stringType);
 
 int Types_IsSingleCharString(Trees_Node type);
 

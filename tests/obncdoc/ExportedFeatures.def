@@ -24,7 +24,7 @@ DEFINITION ExportedFeatures; (*documentation...*)
 (*documentation,
 documentation...*)
 
-	PROCEDURE R;
+	PROCEDURE R((*in/out*) VAR x: INTEGER; (*out*) VAR y: REAL; VAR z: BYTE);
 (*documentation...*)
 
 END ExportedFeatures.

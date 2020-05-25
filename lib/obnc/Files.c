@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -56,15 +56,15 @@ static int FileExists(const char name[])
 }
 
 
-static void CheckTermination(const char s[], OBNC_LONGI int sLen)
+static void CheckTermination(const char s[], OBNC_INTEGER sLen)
 {
-	OBNC_LONGI int i;
+	OBNC_INTEGER i;
 
 	i = 0;
 	while ((i < sLen) && (s[i] != '\0')) {
 		i++;
 	}
-	OBNC_IT(i, sLen);
+	OBNC_C_ASSERT(i < sLen);
 }
 
 
@@ -92,7 +92,7 @@ static File NewFile(FILE *file, const char name[], int registered)
 }
 
 
-Files__File_ Files__Old_(const char name[], OBNC_LONGI int nameLen)
+Files__File_ Files__Old_(const char name[], OBNC_INTEGER nameLen)
 {
 	FILE *file;
 	File result;
@@ -117,7 +117,7 @@ Files__File_ Files__Old_(const char name[], OBNC_LONGI int nameLen)
 }
 
 
-Files__File_ Files__New_(const char name[], OBNC_LONGI int nameLen)
+Files__File_ Files__New_(const char name[], OBNC_INTEGER nameLen)
 {
 	FILE *file;
 	File result;
@@ -162,7 +162,7 @@ void Files__Register_(Files__File_ file)
 	FILE *new;
 	int done;
 
-	OBNC_PT(file);
+	OBNC_C_ASSERT(file != NULL);
 
 	f = (File) file;
 	if (! f->registered) {
@@ -185,7 +185,7 @@ void Files__Close_(Files__File_ file)
 	File f;
 	int error;
 
-	OBNC_PT(file);
+	OBNC_C_ASSERT(file != NULL);
 
 	f = (File) file;
 	error = fflush(f->file);
@@ -200,7 +200,7 @@ void Files__Purge_(Files__File_ file)
 	File f;
 	int error;
 
-	OBNC_PT(file);
+	OBNC_C_ASSERT(file != NULL);
 
 	f = ((File) file);
 	error = fclose(f->file);
@@ -219,7 +219,7 @@ void Files__Purge_(Files__File_ file)
 }
 
 
-void Files__Delete_(const char name[], OBNC_LONGI int nameLen, OBNC_LONGI int *res)
+void Files__Delete_(const char name[], OBNC_INTEGER nameLen, OBNC_INTEGER *res)
 {
 	OBNC_C_ASSERT(name != NULL);
 	OBNC_C_ASSERT(nameLen >= 0);
@@ -232,7 +232,7 @@ void Files__Delete_(const char name[], OBNC_LONGI int nameLen, OBNC_LONGI int *r
 }
 
 
-void Files__Rename_(const char old[], OBNC_LONGI int oldLen, const char new[], OBNC_LONGI int newLen, OBNC_LONGI int *res)
+void Files__Rename_(const char old[], OBNC_INTEGER oldLen, const char new[], OBNC_INTEGER newLen, OBNC_INTEGER *res)
 {
 	OBNC_C_ASSERT(old != NULL);
 	OBNC_C_ASSERT(oldLen >= 0);
@@ -248,13 +248,13 @@ void Files__Rename_(const char old[], OBNC_LONGI int oldLen, const char new[], O
 }
 
 
-OBNC_LONGI int Files__Length_(Files__File_ file)
+OBNC_INTEGER Files__Length_(Files__File_ file)
 {
 	File f;
 	long int result;
 	int error;
 
-	OBNC_PT(file);
+	OBNC_C_ASSERT(file != NULL);
 
 	f = (File) file;
 	result = 0;
@@ -263,29 +263,27 @@ OBNC_LONGI int Files__Length_(Files__File_ file)
 		result = ftell(f->file);
 		if (result < 0) {
 			fprintf(stderr, "Files.Length failed: %s: %s\n", f->name, strerror(errno));
+		} else if (result > OBNC_INT_MAX) {
+			fprintf(stderr, "Files.Length failed: %s: length exceeds maximum value of INTEGER (%" OBNC_INT_MOD "d)\n", f->name, (OBNC_INTEGER) OBNC_INT_MAX);
 		}
-#ifndef OBNC_USE_LONG_INT
-		else if (result > INT_MAX) {
-			fprintf(stderr, "Files.Length failed: %s: length exceeds maximum value of INTEGER (%d)\n", f->name, INT_MAX);
-		}
-#endif
 	} else {
 		fprintf(stderr, "Files.Length failed: %s: %s\n", f->name, strerror(errno));
 	}
-	return (OBNC_LONGI int) result;
+	return (OBNC_INTEGER) result;
 }
 
 
-void Files__GetDate_(Files__File_ file, OBNC_LONGI int *t, OBNC_LONGI int *d)
+void Files__GetDate_(Files__File_ file, OBNC_INTEGER *t, OBNC_INTEGER *d)
 {
 	File f;
 	struct stat statResult;
 	int error;
 	struct tm *td;
 
-	OBNC_PT(file);
+	OBNC_C_ASSERT(file != NULL);
 	OBNC_C_ASSERT(t != NULL);
 	OBNC_C_ASSERT(d != NULL);
+	OBNC_C_ASSERT(sizeof (OBNC_INTEGER) >= 4);
 
 	f = (File) file;
 	if (f->registered) {
@@ -309,10 +307,10 @@ void Files__GetDate_(Files__File_ file, OBNC_LONGI int *t, OBNC_LONGI int *d)
 }
 
 
-void Files__Set_(Files__Rider_ *r, const OBNC_Td *rTD, Files__File_ f, OBNC_LONGI int pos)
+void Files__Set_(Files__Rider_ *r, const OBNC_Td *rTD, Files__File_ f, OBNC_INTEGER pos)
 {
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(f);
+	OBNC_C_ASSERT(f != NULL);
 	OBNC_C_ASSERT(pos >= 0);
 	OBNC_C_ASSERT(pos <= Files__Length_(f));
 
@@ -322,10 +320,10 @@ void Files__Set_(Files__Rider_ *r, const OBNC_Td *rTD, Files__File_ f, OBNC_LONG
 }
 
 
-OBNC_LONGI int Files__Pos_(Files__Rider_ *r, const OBNC_Td *rTD)
+OBNC_INTEGER Files__Pos_(Files__Rider_ *r, const OBNC_Td *rTD)
 {
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 
 	return r->pos_;
 }
@@ -334,7 +332,7 @@ OBNC_LONGI int Files__Pos_(Files__Rider_ *r, const OBNC_Td *rTD)
 Files__File_ Files__Base_(Files__Rider_ *r, const OBNC_Td *rTD)
 {
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 
 	return r->base_;
 }
@@ -367,7 +365,7 @@ void Files__Read_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char *x)
 	int ch;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(x != NULL);
 
 	Position(r, &fp);
@@ -387,19 +385,19 @@ void Files__Read_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char *x)
 }
 
 
-void Files__ReadInt_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int *i)
+void Files__ReadInt_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_INTEGER *i)
 {
 	FILE *fp;
 	size_t n;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(i != NULL);
 
 	Position(r, &fp);
 	if (fp != NULL) {
 		n = fread(i, sizeof (*i), 1, fp);
-		r->pos_ += (OBNC_LONGI int) (n * sizeof (*i));
+		r->pos_ += (OBNC_INTEGER) (n * sizeof (*i));
 		if (feof(fp)) {
 			r->eof_ = 1;
 		} else if (ferror(fp)) {
@@ -409,19 +407,19 @@ void Files__ReadInt_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int *i)
 }
 
 
-void Files__ReadReal_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGR double *x)
+void Files__ReadReal_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_REAL *x)
 {
 	FILE *fp;
 	size_t n;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(x != NULL);
 
 	Position(r, &fp);
 	if (fp != NULL) {
 		n = fread(x, sizeof (*x), 1, fp);
-		r->pos_ += (OBNC_LONGI int) (n * sizeof (*x));
+		r->pos_ += (OBNC_INTEGER) (n * sizeof (*x));
 		if (feof(fp)) {
 			r->eof_ = 1;
 		} else if (ferror(fp)) {
@@ -431,20 +429,21 @@ void Files__ReadReal_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGR double *x
 }
 
 
-void Files__ReadNum_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int *x)
+void Files__ReadNum_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_INTEGER *x)
 {
 	FILE *fp;
-	OBNC_LONGI int s, n;
-	int ch;
+	OBNC_INTEGER s, n;
+	int ch, y, z;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(x != NULL);
+	OBNC_C_ASSERT(sizeof (OBNC_INTEGER) >= 4);
 
 	Position(r, &fp);
 	if (fp != NULL) {
-		s = 0;
 		n = 0;
+		s = 0;
 		ch = fgetc(fp);
 		while (ch >= 128) {
 			r->pos_++;
@@ -454,7 +453,13 @@ void Files__ReadNum_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int *x)
 		}
 		if (ch != EOF) {
 			r->pos_++;
-			*x = n + ((OBNC_MOD(ch, 64) - OBNC_DIV(ch, 64) * 64) << s);
+			y = OBNC_MOD(ch, 64) - OBNC_DIV(ch, 64) * 64;
+			if (y < 0) {
+				z = -((-y) << s);
+			} else {
+				z = y << s;
+			}
+			*x = n + z;
 		} else {
 			if (feof(fp)) {
 				r->eof_ = 1;
@@ -466,14 +471,14 @@ void Files__ReadNum_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int *x)
 }
 
 
-void Files__ReadString_(Files__Rider_ *r, const OBNC_Td *rTD, char s[], OBNC_LONGI int sLen)
+void Files__ReadString_(Files__Rider_ *r, const OBNC_Td *rTD, char s[], OBNC_INTEGER sLen)
 {
 	FILE *fp;
 	int ch;
-	OBNC_LONGI int i;
+	OBNC_INTEGER i;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(s != NULL);
 	OBNC_C_ASSERT(sLen >= 0);
 
@@ -504,19 +509,19 @@ void Files__ReadString_(Files__Rider_ *r, const OBNC_Td *rTD, char s[], OBNC_LON
 }
 
 
-void Files__ReadSet_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI unsigned int *s)
+void Files__ReadSet_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned OBNC_INTEGER *s)
 {
 	FILE *fp;
 	size_t n;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(s != NULL);
 
 	Position(r, &fp);
 	if (fp != NULL) {
 		n = fread(s, sizeof (*s), 1, fp);
-		r->pos_ += (OBNC_LONGI int) (n * sizeof (*s));
+		r->pos_ += (OBNC_INTEGER) (n * sizeof (*s));
 		if (feof(fp)) {
 			r->eof_ = 1;
 		} else if (ferror(fp)) {
@@ -532,7 +537,7 @@ void Files__ReadBool_(Files__Rider_ *r, const OBNC_Td *rTD, int *b)
 	int ch;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(b != NULL);
 
 	Position(r, &fp);
@@ -552,19 +557,19 @@ void Files__ReadBool_(Files__Rider_ *r, const OBNC_Td *rTD, int *b)
 }
 
 
-static OBNC_LONGI int Min(OBNC_LONGI int a, OBNC_LONGI int b)
+static OBNC_INTEGER Min(OBNC_INTEGER a, OBNC_INTEGER b)
 {
 	return (a < b)? a: b;
 }
 
 
-void Files__ReadBytes_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char buf[], OBNC_LONGI int bufLen, OBNC_LONGI int n)
+void Files__ReadBytes_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char buf[], OBNC_INTEGER bufLen, OBNC_INTEGER n)
 {
 	FILE *fp;
 	size_t nRead;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(buf != NULL);
 	OBNC_C_ASSERT(bufLen >= 0);
 	OBNC_C_ASSERT(n >= 0);
@@ -572,8 +577,8 @@ void Files__ReadBytes_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char buf[]
 	Position(r, &fp);
 	if (fp != NULL) {
 		nRead = fread(buf, sizeof buf[0], (size_t) Min(n, bufLen), fp);
-		r->pos_ += (OBNC_LONGI int) (nRead * sizeof buf[0]);
-		r->res_ = n - (OBNC_LONGI int) nRead;
+		r->pos_ += (OBNC_INTEGER) (nRead * sizeof buf[0]);
+		r->res_ = n - (OBNC_INTEGER) nRead;
 		if (feof(fp)) {
 			r->eof_ = 1;
 		} else if (ferror(fp)) {
@@ -589,7 +594,7 @@ void Files__Write_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char x)
 	int res;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 
 	Position(r, &fp);
 	if (fp != NULL) {
@@ -603,18 +608,18 @@ void Files__Write_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char x)
 }
 
 
-void Files__WriteInt_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int i)
+void Files__WriteInt_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_INTEGER i)
 {
 	FILE *fp;
 	size_t n;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 
 	Position(r, &fp);
 	if (fp != NULL) {
 		n = fwrite(&i, sizeof i, 1, fp);
-		r->pos_ += (OBNC_LONGI int) (n * sizeof i);
+		r->pos_ += (OBNC_INTEGER) (n * sizeof i);
 		if (ferror(fp)) {
 			fprintf(stderr, "Files.WriteInt failed: %s: %s\n", BaseName(r), strerror(errno));
 		}
@@ -622,18 +627,18 @@ void Files__WriteInt_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int i)
 }
 
 
-void Files__WriteReal_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGR double x)
+void Files__WriteReal_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_REAL x)
 {
 	FILE *fp;
 	size_t n;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 
 	Position(r, &fp);
 	if (fp != NULL) {
 		n = fwrite(&x, sizeof x, 1, fp);
-		r->pos_ += (OBNC_LONGI int) (n * sizeof x);
+		r->pos_ += (OBNC_INTEGER) (n * sizeof x);
 		if (ferror(fp)) {
 			fprintf(stderr, "Files.WriteReal failed: %s: %s\n", BaseName(r), strerror(errno));
 		}
@@ -641,7 +646,7 @@ void Files__WriteReal_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGR double x
 }
 
 
-void Files__WriteNum_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int x)
+void Files__WriteNum_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_INTEGER x)
 {
 	FILE *fp;
 	int i;
@@ -649,7 +654,7 @@ void Files__WriteNum_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int x)
 	size_t n;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 
 	i = 0;
 	while ((x < -64) || (x > 63)) {
@@ -664,7 +669,7 @@ void Files__WriteNum_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int x)
 	Position(r, &fp);
 	if (fp != NULL) {
 		n = fwrite(buf, sizeof buf[0], (size_t) i + 1, fp);
-		r->pos_ += (OBNC_LONGI int) (n * sizeof buf[0]);
+		r->pos_ += (OBNC_INTEGER) (n * sizeof buf[0]);
 		if (ferror(fp)) {
 			fprintf(stderr, "Files.WriteNum failed: %s: %s\n", BaseName(r), strerror(errno));
 		}
@@ -673,13 +678,13 @@ void Files__WriteNum_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI int x)
 }
 
 
-void Files__WriteString_(Files__Rider_ *r, const OBNC_Td *rTD, const char s[], OBNC_LONGI int sLen)
+void Files__WriteString_(Files__Rider_ *r, const OBNC_Td *rTD, const char s[], OBNC_INTEGER sLen)
 {
 	FILE *fp;
 	size_t n;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(s != NULL);
 	OBNC_C_ASSERT(sLen >= 0);
 	CheckTermination(s, sLen);
@@ -687,7 +692,7 @@ void Files__WriteString_(Files__Rider_ *r, const OBNC_Td *rTD, const char s[], O
 	Position(r, &fp);
 	if (fp != NULL) {
 		n = fwrite(s, sizeof s[0], strlen(s) + 1, fp);
-		r->pos_ += (OBNC_LONGI int) (n * sizeof s[0]);
+		r->pos_ += (OBNC_INTEGER) (n * sizeof s[0]);
 		if (ferror(fp)) {
 			fprintf(stderr, "Files.WriteString failed: %s: %s\n", BaseName(r), strerror(errno));
 		}
@@ -695,18 +700,18 @@ void Files__WriteString_(Files__Rider_ *r, const OBNC_Td *rTD, const char s[], O
 }
 
 
-void Files__WriteSet_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_LONGI unsigned int s)
+void Files__WriteSet_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned OBNC_INTEGER s)
 {
 	FILE *fp;
 	size_t n;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 
 	Position(r, &fp);
 	if (fp != NULL) {
 		n = fwrite(&s, sizeof s, 1, fp);
-		r->pos_ += (OBNC_LONGI int) (n * sizeof s);
+		r->pos_ += (OBNC_INTEGER) (n * sizeof s);
 		if (ferror(fp)) {
 			fprintf(stderr, "Files.WriteSet failed: %s: %s\n", BaseName(r), strerror(errno));
 		}
@@ -720,7 +725,7 @@ void Files__WriteBool_(Files__Rider_ *r, const OBNC_Td *rTD, int b)
 	int res;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 
 	Position(r, &fp);
 	if (fp != NULL) {
@@ -734,13 +739,13 @@ void Files__WriteBool_(Files__Rider_ *r, const OBNC_Td *rTD, int b)
 }
 
 
-void Files__WriteBytes_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char buf[], OBNC_LONGI int bufLen, OBNC_LONGI int n)
+void Files__WriteBytes_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char buf[], OBNC_INTEGER bufLen, OBNC_INTEGER n)
 {
 	FILE *fp;
 	size_t nWritten;
 
 	OBNC_C_ASSERT(r != NULL);
-	OBNC_PT(r->base_);
+	OBNC_C_ASSERT(r->base_ != NULL);
 	OBNC_C_ASSERT(buf != NULL);
 	OBNC_C_ASSERT(bufLen >= 0);
 	OBNC_C_ASSERT(n >= 0);
@@ -749,8 +754,8 @@ void Files__WriteBytes_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char buf[
 	Position(r, &fp);
 	if (fp != NULL) {
 		nWritten = fwrite(buf, sizeof buf[0], (size_t) n, fp);
-		r->pos_ += (OBNC_LONGI int) (nWritten * sizeof buf[0]);
-		r->res_ = n - (OBNC_LONGI int) nWritten;
+		r->pos_ += (OBNC_INTEGER) (nWritten * sizeof buf[0]);
+		r->res_ = n - (OBNC_INTEGER) nWritten;
 		if (ferror(fp)) {
 			fprintf(stderr, "Files.WriteBytes failed: %s: %s\n", BaseName(r), strerror(errno));
 		}

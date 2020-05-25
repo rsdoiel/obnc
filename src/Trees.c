@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "Trees.h"
+#include "lex.yy.h"
 #include "Util.h"
 #include "../lib/obnc/OBNC.h"
 #include "y.tab.h"
@@ -41,31 +42,45 @@ enum {
 struct Trees_NodeDesc {
 	int valueType;
 	int symbol;
+	int lineNumber;
 	int marked;
 	union {
 		struct {
 			const char *name, *unaliasedName;
 			int kind;
-			unsigned int local:1, imported:1, exported:1, internal:1;
+			unsigned int local:1, imported:1, exported:1, internal:1, used:1;
 			Trees_Node value;
 		} ident;
-		OBNC_LONGI int integer;
-		OBNC_LONGR double real;
+		OBNC_INTEGER integer;
+		OBNC_REAL real;
 		char *string;
 		char ch;
-		OBNC_LONGI unsigned int set;
+		unsigned OBNC_INTEGER set;
 	} value;
 	Trees_Node type;
 	Trees_Node left, right;
 };
 
+static int initialized = 0;
+
+void Trees_Init(void)
+{
+	if (! initialized) {
+		initialized = 1;
+		Util_Init();
+	}
+}
+
+
 Trees_Node Trees_NewNode(int symbol, Trees_Node left, Trees_Node right)
 {
 	Trees_Node result;
 
+	assert(initialized);
 	NEW(result);
 	result->valueType = NO_VALUE;
 	result->symbol = symbol;
+	result->lineNumber = yylineno;
 	result->marked = 0;
 	result->type = NULL;
 	result->left = left;
@@ -109,6 +124,14 @@ int Trees_Symbol(Trees_Node node)
 	assert(node != NULL);
 
 	return node->symbol;
+}
+
+
+int Trees_LineNumber(Trees_Node node)
+{
+	assert(node != NULL);
+
+	return node->lineNumber;
 }
 
 
@@ -480,6 +503,7 @@ Trees_Node Trees_NewIdent(const char name[])
 	result->value.ident.imported = 0;
 	result->value.ident.exported = 0;
 	result->value.ident.internal = 0;
+	result->value.ident.used = 0;
 	result->value.ident.value = NULL;
 	return result;
 }
@@ -615,6 +639,24 @@ void Trees_SetInternal(Trees_Node identNode)
 }
 
 
+int Trees_Used(Trees_Node identNode)
+{
+	assert(identNode != NULL);
+	assert(identNode->valueType == IDENT_VALUE);
+
+	return identNode->value.ident.used;
+}
+
+
+void Trees_SetUsed(Trees_Node identNode)
+{
+	assert(identNode != NULL);
+	assert(identNode->valueType == IDENT_VALUE);
+
+	identNode->value.ident.used = 1;
+}
+
+
 Trees_Node Trees_Value(Trees_Node node)
 {
 	Trees_Node value;
@@ -672,7 +714,7 @@ int Trees_Boolean(Trees_Node boolNode)
 
 /*Integers*/
 
-Trees_Node Trees_NewInteger(OBNC_LONGI int value)
+Trees_Node Trees_NewInteger(OBNC_INTEGER value)
 {
 	Trees_Node result;
 
@@ -684,7 +726,7 @@ Trees_Node Trees_NewInteger(OBNC_LONGI int value)
 }
 
 
-OBNC_LONGI int Trees_Integer(Trees_Node integerNode)
+OBNC_INTEGER Trees_Integer(Trees_Node integerNode)
 {
 	assert(integerNode != NULL);
 	assert(integerNode->valueType == INTEGER_VALUE);
@@ -695,7 +737,7 @@ OBNC_LONGI int Trees_Integer(Trees_Node integerNode)
 
 /*Real numbers*/
 
-Trees_Node Trees_NewReal(OBNC_LONGR double value)
+Trees_Node Trees_NewReal(OBNC_REAL value)
 {
 	Trees_Node result;
 
@@ -707,7 +749,7 @@ Trees_Node Trees_NewReal(OBNC_LONGR double value)
 }
 
 
-OBNC_LONGR double Trees_Real(Trees_Node realNode)
+OBNC_REAL Trees_Real(Trees_Node realNode)
 {
 	assert(realNode != NULL);
 	assert(realNode->valueType == REAL_VALUE);
@@ -737,7 +779,7 @@ const char *Trees_String(Trees_Node stringNode)
 {
 	assert(stringNode != NULL);
 	assert(stringNode->valueType == STRING_VALUE);
-
+	assert(stringNode->value.string != NULL);
 	return stringNode->value.string;
 }
 
@@ -767,7 +809,7 @@ char Trees_Char(Trees_Node charNode)
 
 /*Set constants*/
 
-Trees_Node Trees_NewSet(OBNC_LONGI unsigned int value)
+Trees_Node Trees_NewSet(unsigned OBNC_INTEGER value)
 {
 	Trees_Node result;
 
@@ -779,7 +821,7 @@ Trees_Node Trees_NewSet(OBNC_LONGI unsigned int value)
 }
 
 
-OBNC_LONGI unsigned int Trees_Set(Trees_Node setNode)
+unsigned OBNC_INTEGER Trees_Set(Trees_Node setNode)
 {
 	assert(setNode != NULL);
 	assert(setNode->valueType == SET_VALUE);

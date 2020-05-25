@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -36,8 +36,10 @@ static int initialized = 0;
 void ModulePaths_Init(void)
 {
 	if (! initialized) {
-		Files_Init();
 		initialized = 1;
+		Config_Init();
+		Files_Init();
+		Util_Init();
 	}
 }
 
@@ -114,6 +116,15 @@ static const char *SearchPath(const char dir[], const char module[])
 }
 
 
+static void GetSearchPath(const char dir[], const char module[], int verbose, const char *result[])
+{
+	*result = SearchPath(dir, module);
+	if (verbose && (*result == NULL)) {
+		printf("%s\n", dir);
+	}
+}
+
+
 static int CharCount(char ch, const char s[])
 {
 	int i = 0, result = 0;
@@ -174,7 +185,7 @@ static char **CustomImportPaths(void)
 }
 
 
-const char *ModulePaths_Directory(const char module[], const char relativeDir[])
+const char *ModulePaths_Directory(const char module[], const char relativeDir[], int verbose)
 {
 	const char *result, *obncLibPath;
 	char **paths;
@@ -184,19 +195,19 @@ const char *ModulePaths_Directory(const char module[], const char relativeDir[])
 	assert(module != NULL);
 	assert(relativeDir != NULL);
 
-	result = SearchPath(relativeDir, module);
+	GetSearchPath(relativeDir, module, verbose, &result);
 	if (result == NULL) {
 		paths = CustomImportPaths();
 		i = 0;
 		while ((result == NULL) && (paths[i] != NULL)) {
 			if (paths[i][0] != '\0') {
-				result = SearchPath(paths[i], module);
+				GetSearchPath(paths[i], module, verbose, &result);
 			}
 			i++;
 		}
 		if (result == NULL) {
 			obncLibPath = Util_String("%s/%s/obnc", Config_Prefix(), Config_LibDir());
-			result = SearchPath(obncLibPath, module);
+			GetSearchPath(obncLibPath, module, verbose, &result);
 		}
 	}
 	return result;

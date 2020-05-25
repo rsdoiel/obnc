@@ -1,6 +1,6 @@
 #!/usr/bin/awk -f
 
-# Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -112,7 +112,7 @@ function TrackQualifiers(line,
 function ExportedParts(line,
 	left, right)
 {
-	match(line, "[=:;(]|\\(\\*")
+	match(line, "[=:;(]")
 	if (RSTART > 0) {
 		left = substr(line, 1, RSTART - 1)
 		right = substr(line, RSTART)
@@ -124,15 +124,11 @@ function ExportedParts(line,
 		gsub("\\*", "", left)
 
 		#skip past trailing semi-colon (if any)
-		if (substr(right, 1, 1) == ";") {
-			left = left ";"
-			right = substr(right, 2)
-		} else {
+		MatchSyntax(right, ";")
+		while (RSTART > 0) {
+			left = left "" substr(right, 1, RSTART)
+			right = substr(right, RSTART + RLENGTH)
 			MatchSyntax(right, ";")
-			if (RSTART > 0) {
-				left = left "" substr(right, 1, RSTART)
-				right = substr(right, RSTART + 1)
-			}
 		}
 
 		#skip to trailing comment (if any)
@@ -142,8 +138,18 @@ function ExportedParts(line,
 			right = substr(right, RSTART)
 		}
 
-		sub("^[ \t]*\\(\\*([^*].*|$)", "", right) #delete non-exported comment
-		sub("^[ \t]*\\(\\*\\*", " (*", right) #unmark exported comment
+		#delete non-exported comments
+		if (MatchSyntax(left, "PROCEDURE")) {
+			gsub("[ \t]*\\(\\*[^*]*\\*\\)", "", left)
+		}
+		sub("^[ \t]*\\(\\*([^*].*|$)", "", right)
+
+		#unmark exported comments
+		if (MatchSyntax(left, "PROCEDURE")) {
+			gsub("\\(\\*\\*", "(*", left)
+		}
+		sub("^[ \t]*\\(\\*\\*", " (*", right)
+
 		line = left""right
 	}
 	return line
@@ -171,7 +177,9 @@ BEGIN {
 }
 
 (commentLevel == 0) && /^[ \t]*$/ {
-	sub("\n+$", "\n\n", output[currentSection])
+	if ((currentSection == "IMPORT") || sectionExported[currentSection]) {
+		sub("\n+$", "\n\n", output[currentSection])
+	}
 	next
 }
 

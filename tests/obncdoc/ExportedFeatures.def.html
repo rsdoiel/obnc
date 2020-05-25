@@ -7,7 +7,7 @@
 		<link rel='stylesheet' type='text/css' href='style.css' />
 	</head>
 	<body>
-		<p><a href='index.html'>Library obncdoc</a></p>
+		<p><a href='index.html'>Index</a></p>
 
 		<pre>
 DEFINITION <em>ExportedFeatures</em>; <span class='comment'>(*documentation...*)</span>
@@ -36,7 +36,7 @@ DEFINITION <em>ExportedFeatures</em>; <span class='comment'>(*documentation...*)
 <span class='comment'>(*documentation,
 documentation...*)</span>
 
-	PROCEDURE <em>R</em>;
+	PROCEDURE <em>R</em>(<span class='comment'>(*in/out*)</span> VAR x: INTEGER; <span class='comment'>(*out*)</span> VAR y: REAL; VAR z: BYTE);
 <span class='comment'>(*documentation...*)</span>
 
 END ExportedFeatures.

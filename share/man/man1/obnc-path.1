@@ -3,6 +3,7 @@
 obnc-path \- print directory path for Oberon module
 .SH SYNOPSIS
 .B obnc-path
+[\fB\-v\fR]
 MODULE
 .br
 .B obnc-path
@@ -23,7 +24,7 @@ For each path P, modules are searched both in P and in first-level subdirectorie
 Display help and exit.
 .TP
 .BR \-v
-Display version and exit.
+Without argument, display version and exit. Otherwise, print each inspected directory path to standard output.
 .SH ENVIRONMENT
 .IP OBNC_IMPORT_PATH
 List of directory paths to search Oberon modules in. Paths are separated with a colon on POSIX systems, and with a semicolon on MS Windows.

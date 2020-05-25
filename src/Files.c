@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -32,8 +32,8 @@ static int initialized = 0;
 void Files_Init(void)
 {
 	if (! initialized) {
-		Error_Init();
 		initialized = 1;
+		Error_Init();
 	}
 }
 

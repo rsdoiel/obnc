@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,10 +12,10 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.*/
 
 #define LEN(arr) ((int) (sizeof (arr) / sizeof (arr)[0]))
 
-OBNC_LONGI int Input__TimeUnit_;
+OBNC_INTEGER Input__TimeUnit_;
 
-static OBNC_LONGI int mouseLimitWidth = OBNC_INT_MAX;
-static OBNC_LONGI int mouseLimitHeight = OBNC_INT_MAX;
+static OBNC_INTEGER mouseLimitWidth = OBNC_INT_MAX;
+static OBNC_INTEGER mouseLimitHeight = OBNC_INT_MAX;
 
 static int IsNonModKey(const SDL_Event *event)
 {
@@ -23,7 +23,7 @@ static int IsNonModKey(const SDL_Event *event)
 }
 
 
-OBNC_LONGI int Input__Available_(void)
+OBNC_INTEGER Input__Available_(void)
 {
 	SDL_Event events[10];
 	int result, count, i;
@@ -76,7 +76,7 @@ void Input__Read_(char *ch)
 }
 
 
-void Input__Mouse_(OBNC_LONGI unsigned int *keys, OBNC_LONGI int *x, OBNC_LONGI int *y)
+void Input__Mouse_(unsigned OBNC_INTEGER *keys, OBNC_INTEGER *x, OBNC_INTEGER *y)
 {
 	SDL_Surface *display;
 	int x0, y0;
@@ -100,7 +100,7 @@ void Input__Mouse_(OBNC_LONGI unsigned int *keys, OBNC_LONGI int *x, OBNC_LONGI 
 		middlePressed = (buttons & SDL_BUTTON_MMASK) != 0;
 		rightPressed = (buttons & SDL_BUTTON_RMASK) != 0;
 
-		*keys = (OBNC_LONGI unsigned int) (leftPressed << 2) | (middlePressed << 1) | rightPressed;
+		*keys = (unsigned OBNC_INTEGER) (leftPressed << 2) | (middlePressed << 1) | rightPressed;
 	} else {
 		fprintf(stderr, "Input.Mouse failed: No display surface\n");
 		OBNC_Exit(EXIT_FAILURE);
@@ -108,7 +108,7 @@ void Input__Mouse_(OBNC_LONGI unsigned int *keys, OBNC_LONGI int *x, OBNC_LONGI 
 }
 
 
-void Input__SetMouseLimits_(OBNC_LONGI int w, OBNC_LONGI int h)
+void Input__SetMouseLimits_(OBNC_INTEGER w, OBNC_INTEGER h)
 {
 	OBNC_C_ASSERT(w > 0);
 	OBNC_C_ASSERT(h > 0);
@@ -118,7 +118,7 @@ void Input__SetMouseLimits_(OBNC_LONGI int w, OBNC_LONGI int h)
 }
 
 
-OBNC_LONGI int Input__Time_(void)
+OBNC_INTEGER Input__Time_(void)
 {
 	return Input0__Time_();
 }

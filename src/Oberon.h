@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -27,7 +27,7 @@ void Oberon_Init(void);
 
 void Oberon_Parse(const char inputFile[], int mode);
 
-void yyerror(const char format[], ...)
+void Oberon_PrintError(const char format[], ...)
 	__attribute__ ((format (printf, 1, 2)));
 
 #endif

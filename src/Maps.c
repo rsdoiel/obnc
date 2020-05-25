@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -27,8 +27,20 @@ struct Maps_MapDesc {
 	Maps_Map next;
 };
 
+static int initialized = 0;
+
+void Maps_Init(void)
+{
+	if (! initialized) {
+		initialized = 1;
+		Util_Init();
+	}
+}
+
+
 Maps_Map Maps_New(void)
 {
+	assert(initialized);
 	return NULL;
 }
 

@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -17,6 +17,7 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "Files.h"
 #include "lex.yy.h"
+#include "Oberon.h"
 #include "Trees.h" /*symbol type in y.tab.h needs tree node declaration*/
 #include "Util.h"
 #include "y.tab.h"
@@ -32,7 +33,7 @@ static struct { int token; const char *value; } expectedOutput[] = {
 	{IDENT, "Oberon"},
 	{IDENT, "GetSymbol"},
 	{IDENT, "firstLetter"},
-	{INTEGER, "2147483647"},
+	{INTEGER, "32767"},
 	{INTEGER, "256"},
 	{REAL, "340282346638528859811704183484516925440.0"},
 	{REAL, "4.567E+6"},
@@ -112,8 +113,8 @@ static void CompareTokens(int token, int i)
 	int expectedToken;
 	const char *expectedValue;
 	union {
-		OBNC_LONGI int integer;
-		OBNC_LONGR double real;
+		OBNC_INTEGER integer;
+		OBNC_REAL real;
 	} value;
 
 	assert((i >= 0) && (i < LEN(expectedOutput)));
@@ -165,6 +166,8 @@ int main(void)
 	int exitStatus;
 
 	Files_Init();
+	Oberon_Init();
+	Trees_Init();
 	Util_Init();
 	inputFile = Files_Old(inputFilename, FILES_READ);
 	assert(inputFile != NULL);

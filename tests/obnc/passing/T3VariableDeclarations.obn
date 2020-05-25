@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -22,7 +22,6 @@ MODULE T3VariableDeclarations;
 			x, y: REAL
 		END;
 
-		Shape = POINTER TO ShapeDesc;
 		ShapeDesc = RECORD
 			pos: Vector
 		END;

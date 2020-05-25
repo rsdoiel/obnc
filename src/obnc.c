@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -21,6 +21,7 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 #include "ModulePaths.h"
 #include "Paths.h"
 #include "StackTrace.h"
+#include "Time.h"
 #include "Util.h"
 #include <sys/stat.h> /*POSIX*/
 #include <assert.h>
@@ -42,6 +43,12 @@ struct ModuleNode {
 static const char *executableFile;
 static int verbosity;
 static int crossCompilationEnabled;
+
+static int startTime;
+static int obncCompileTotalTime;
+static int ccCompileTotalTime;
+static int ccLinkTotalTime;
+static int ccTotalTime;
 
 static ModuleList NewModuleNode(const char module[], const char dir[], ModuleList next)
 {
@@ -213,7 +220,7 @@ static void GetImportedFiles(const char module[], const char dir[], char ***impo
 		for (i = 0; i < *importedFilesLen; i++) {
 			assert(i < importedModulesLen);
 			importedModule = importedModules[i];
-			impDir = ModulePaths_Directory(importedModule, dir);
+			impDir = ModulePaths_Directory(importedModule, dir, 0);
 			if (impDir != NULL) {
 				(*importedFiles)[i] = Util_String("%s", ModulePaths_SourceFile(importedModule, impDir));
 			} else {
@@ -245,7 +252,7 @@ static void DetectImportCycle(const char importedModule[], const char moduleDir[
 static void CompileOberon(const char module[], const char dir[], int isEntryPoint)
 {
 	const char *outputDir, *inputFile, *symFile, *symBakFile, *entryPointOption, *command;
-	int error;
+	int error, start;
 
 	outputDir = Util_String("%s/.obnc", dir);
 
@@ -261,7 +268,7 @@ static void CompileOberon(const char module[], const char dir[], int isEntryPoin
 	}
 
 	entryPointOption = isEntryPoint? "-e": "";
-	inputFile = ModulePaths_SourceFile(module, ".");
+	inputFile = Paths_Basename(ModulePaths_SourceFile(module, dir));
 	if (strcmp(dir, ".") == 0) {
 		command = Util_String("%s %s %s", Paths_ShellArg(ObncCompilerPath()), entryPointOption, Paths_ShellArg(inputFile));
 	} else {
@@ -270,7 +277,9 @@ static void CompileOberon(const char module[], const char dir[], int isEntryPoin
 	if (verbosity == 2) {
 		puts(command);
 	}
+	start = Time();
 	error = system(command);
+	obncCompileTotalTime += Time() - start;
 	if (error) {
 		Error_Handle("");
 	}
@@ -325,11 +334,25 @@ static void ReadEnvFile(const char filename[], char **keys[], char **values[], i
 }
 
 
+static char *CCompiler(void)
+{
+	char *cc, *result;
+
+	cc = getenv("CC");
+	if ((cc != NULL) && (strcmp(cc, "") != 0)) {
+		result = Util_String("%s", cc);
+	} else {
+		result = Util_String("cc");
+	}
+	return result;
+}
+
+
 static void CompileC(const char module[], const char dir[])
 {
 	const char *inputFile, *outputFile, *envFile, *cc, *includePath, *globalCFlags, *moduleCFlags, *cFlags, *command;
 	char **keys, **values;
-	int len, i, error;
+	int len, i, error, start;
 
 	inputFile = Util_String("%s%s.c", AsPrefix(dir), module);
 	if (! Files_Exists(inputFile)) {
@@ -339,10 +362,7 @@ static void CompileC(const char module[], const char dir[])
 	outputFile = Util_String("%s.obnc/%s.o", AsPrefix(dir), module);
 	envFile = Util_String("%s/%s.env", dir, module);
 
-	cc = getenv("CC");
-	if ((cc == NULL) || (strcmp(cc, "") == 0)) {
-		cc = "cc";
-	}
+	cc = CCompiler();
 
 	globalCFlags = getenv("CFLAGS");
 	if (globalCFlags == NULL) {
@@ -372,7 +392,9 @@ static void CompileC(const char module[], const char dir[])
 	if ((strstr(cFlags, "OBNC_CONFIG_TARGET_EMB=") != NULL) && ! crossCompilationEnabled) {
 		Error_Handle("OBNC_CONFIG_TARGET_EMB can only be used with option -x");
 	}
+	start = Time();
 	error = system(command);
+	ccCompileTotalTime += Time() - start;
 	if (error) {
 		Error_Handle("");
 	}
@@ -598,7 +620,7 @@ static void DeleteArg(const char arg[], char argList[])
 		while (p != NULL) {
 			if (((p == argList) || isspace((p - 1)[0]))
 					&& (isspace((p + argLen)[0]) || ((p + argLen)[0] == '\0'))) {
-				strcpy(p, p + argLen);
+				strcpy(p, Util_String("%s", p + argLen));
 			} else {
 				p += argLen;
 			}
@@ -610,15 +632,12 @@ static void DeleteArg(const char arg[], char argList[])
 
 static void CreateExecutable(const char *inputFiles[], int inputFilesLen)
 {
-	int embedded, keysLen, i, j, error;
+	int embedded, keysLen, i, j, error, start;
 	char **keys, **values;
 	char *ldLibs;
 	const char *cc, *cFlags, *includePath, *ldFlags, *inputFileArgs, *module, *envFileDir, *envFile, *command;
 
-	cc = getenv("CC");
-	if ((cc == NULL) || (strcmp(cc, "") == 0)) {
-		cc = "cc";
-	}
+	cc = CCompiler();
 
 	embedded = 0;
 	if (crossCompilationEnabled) {
@@ -672,10 +691,48 @@ static void CreateExecutable(const char *inputFiles[], int inputFilesLen)
 	} else if (verbosity == 2) {
 		printf("\nCreating executable %s:\n\n%s\n", executableFile, command);
 	}
+	start = Time();
 	error = system(command);
+	if (crossCompilationEnabled) {
+		ccTotalTime = Time() - start;
+	} else {
+		ccLinkTotalTime += Time() - start;
+	}
 	if (error) {
 		Error_Handle("");
 	}
+}
+
+
+static void PrintTimeFractions(int startTime)
+{
+	int elapsedTotal, obncPercent, obncCompilePercent, ccCompilePercent = 0, ccLinkPercent = 0, ccPercent = 0;
+	const char *cc;
+
+	elapsedTotal = Time() - startTime;
+	obncCompilePercent = (int) ((double) obncCompileTotalTime / (double) elapsedTotal * 100.0 + 0.5);
+	if (crossCompilationEnabled) {
+		ccPercent = (int) ((double) ccTotalTime / (double) elapsedTotal * 100.0 + 0.5);
+		obncPercent = 100 - obncCompilePercent - ccPercent;
+	} else {
+		ccCompilePercent = (int) ((double) ccCompileTotalTime / (double) elapsedTotal * 100.0 + 0.5);
+		ccLinkPercent = (int) ((double) ccLinkTotalTime / (double) elapsedTotal * 100.0 + 0.5);
+		obncPercent = 100 - obncCompilePercent - ccCompilePercent - ccLinkPercent;
+	}
+	cc = Paths_Basename(CCompiler());
+
+	printf("\nTiming statistics:\n\n");
+	printf("Command       Time spent\n");
+	printf("------------------------\n");
+	printf("obnc %18d%%\n", obncPercent);
+	printf("obnc-compile %10d%%\n", obncCompilePercent);
+	if (crossCompilationEnabled) {
+		printf("%s %*d%%\n", cc, 22 - (int) strlen(cc), ccPercent);
+	} else {
+		printf("%s compile %*d%%\n", cc, 14 - (int) strlen(cc), ccCompilePercent);
+		printf("%s link %*d%%\n", cc, 17 - (int) strlen(cc), ccLinkPercent);
+	}
+	printf("------------------------\n");
 }
 
 
@@ -717,8 +774,11 @@ static void Build(const char oberonFile[])
 	}
 
 	newestCCModule = NewestFile(ccInputFiles, ccInputFilesLen);
-	if (! Files_Exists(executableFile) || (Files_Timestamp(executableFile) < Files_Timestamp(newestCCModule))) {
+	if (! Files_Exists(executableFile) || (Files_Timestamp(executableFile) < Files_Timestamp(newestCCModule)) || crossCompilationEnabled) {
 		CreateExecutable(ccInputFiles, ccInputFilesLen);
+		if (verbosity == 2) {
+			PrintTimeFractions(startTime);
+		}
 	} else {
 		printf("%s is up to date\n", executableFile);
 	}
@@ -730,14 +790,14 @@ static void PrintHelp(void)
 	puts("obnc - build an executable for an Oberon module\n");
 	puts("usage:");
 	puts("\tobnc [-o OUTFILE] [-v | -V] [-x] INFILE");
-	puts("\tobnc [-h | -v]\n");
+	puts("\tobnc (-h | -v)\n");
 	puts("\t-o\tuse pathname OUTFILE for generated executable");
 	puts("\t-v\tlog compiled modules or display version and exit");
 	puts("\t-V\tlog compiler and linker commands");
 	puts("\t-x\tcompile and link C files in one command (for cross compilation)");
 	puts("\t-h\tdisplay help and exit");
 	puts("");
-	puts("\tINFILE is expected to end with .obn, .m, .Mod or .mod");
+	puts("\tINFILE is expected to end with .obn, .Mod or .mod");
 }
 
 
@@ -780,6 +840,8 @@ int main(int argc, char *argv[])
 	int i, hSet = 0, vSet = 0, VSet = 0;
 	const char *arg, *inputFile = NULL, *fileSuffix;
 
+	startTime = Time();
+	Config_Init();
 	Error_Init();
 	Files_Init();
 	ModulePaths_Init();
@@ -813,8 +875,7 @@ int main(int argc, char *argv[])
 			if ((fileSuffix != NULL)
 					&& ((strcmp(fileSuffix, ".obn") == 0)
 						|| (strcmp(fileSuffix, ".Mod") == 0)
-						|| (strcmp(fileSuffix, ".mod") == 0)
-						|| (strcmp(fileSuffix, ".m") == 0))) {
+						|| (strcmp(fileSuffix, ".mod") == 0))) {
 				if (Files_Exists(arg)) {
 					inputFile = arg;
 				} else {

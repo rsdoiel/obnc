@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -67,10 +67,12 @@ Test()
 	for test in ?*Test.obn; do
 		#if-command prevents script from halting upon a missing non-required C library, like SDL
 		if "$selfDirPath/bin/obnc" "$test" >/dev/null; then
-			if [ -e "${test%.obn}.sh" ]; then
-				EchoAndRun "./${test%.obn}.sh"
-			else
-				EchoAndRun "./${test%.obn}"
+			if { [ "$test" != "InputTest.obn" ] && [ "$test" != "XYplaneTest.obn" ] ; } || [ "${DEV_ENV:-}" = 1 ]; then
+				if [ -e "${test%.obn}.sh" ]; then
+					EchoAndRun "./${test%.obn}.sh"
+				else
+					EchoAndRun "./${test%.obn}"
+				fi
 			fi
 		else
 			failure=true

@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,16 +10,22 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.*/
 #include <SDL/SDL.h> /*SDL 1.2*/
 #include <stdio.h>
 
-#define WITHIN_BOUNDS(x, y) (((OBNC_LONGI unsigned int) (x) < (OBNC_LONGI unsigned int) plane->w) && ((OBNC_LONGI unsigned int) (y) < (OBNC_LONGI unsigned int) plane->h))
+#define LEN(arr) ((int) (sizeof (arr) / sizeof (arr)[0]))
 
-#define PIXEL_PTR(x, y) (((Uint8 *) plane->pixels) + (plane->h - 1- (y)) * plane->w + (x))
+#define WITHIN_BOUNDS(x, y) (((unsigned OBNC_INTEGER) (x) < (unsigned OBNC_INTEGER) plane->w) && ((unsigned OBNC_INTEGER) (y) < (unsigned OBNC_INTEGER) plane->h))
+
+#define PIXEL_PTR(x, y) (((Uint32 *) plane->pixels) + (plane->h - 1- (y)) * plane->w + (x))
 
 static SDL_Surface *plane;
 
-OBNC_LONGI int XYplane__X_ = 0;
-OBNC_LONGI int XYplane__Y_ = 0;
-OBNC_LONGI int XYplane__W_ = 0;
-OBNC_LONGI int XYplane__H_ = 0;
+OBNC_INTEGER XYplane__X_ = 0;
+OBNC_INTEGER XYplane__Y_ = 0;
+OBNC_INTEGER XYplane__W_ = 0;
+OBNC_INTEGER XYplane__H_ = 0;
+static OBNC_INTEGER customWidth;
+static OBNC_INTEGER customHeight;
+
+static Uint32 colors[2] = {0, 0xffffff};
 
 static void CalculatePlaneSize(int useFullscreen, int *width, int *height)
 {
@@ -33,6 +39,9 @@ static void CalculatePlaneSize(int useFullscreen, int *width, int *height)
 		if (useFullscreen) {
 			*width = info->current_w;
 			*height = info->current_h;
+		} else if ((customWidth > 0) && (customHeight > 0)) {
+			*width = customWidth;
+			*height = customHeight;
 		} else {
 			if (info->current_h > info->current_w) {
 				nominalW = info->current_w * 4 / 5;
@@ -85,7 +94,7 @@ static void Open(int useFullscreen)
 		if (useFullscreen) {
 			flags |= SDL_FULLSCREEN;
 		}
-		plane = SDL_SetVideoMode(width, height, 8, flags);
+		plane = SDL_SetVideoMode(width, height, 32, flags);
 		if (plane != NULL) {
 			XYplane__W_ = plane->w;
 			XYplane__H_ = plane->h;
@@ -124,19 +133,20 @@ void XYplane__Clear_(void)
 }
 
 
-void XYplane__Dot_(OBNC_LONGI int x, OBNC_LONGI int y, OBNC_LONGI int mode)
+void XYplane__Dot_(OBNC_INTEGER x, OBNC_INTEGER y, OBNC_INTEGER mode)
 {
-	static unsigned char color[] = {0, 0xff};
+	OBNC_C_ASSERT(mode >= 0);
+	OBNC_C_ASSERT(mode < LEN(colors));
 
 	if ((plane != NULL) && WITHIN_BOUNDS(x, y)) {
-		*PIXEL_PTR(x, y) = color[mode & 1];
+		*PIXEL_PTR(x, y) = colors[mode];
 	}
 }
 
 
-int XYplane__IsDot_(OBNC_LONGI int x, OBNC_LONGI int y)
+int XYplane__IsDot_(OBNC_INTEGER x, OBNC_INTEGER y)
 {
-	return (plane != NULL) && WITHIN_BOUNDS(x, y) && (*PIXEL_PTR(x, y) == 0xff);
+	return (plane != NULL) && WITHIN_BOUNDS(x, y) && (*PIXEL_PTR(x, y) != 0);
 }
 
 
@@ -167,6 +177,32 @@ char XYplane__Key_(void)
 		SDL_Delay(10);
 	}
 	return result;
+}
+
+
+void XYplane__SetSize_(OBNC_INTEGER width, OBNC_INTEGER height)
+{
+	OBNC_C_ASSERT(width > 0);
+	OBNC_C_ASSERT(height > 0);
+
+	if (width % 4 == 0) {
+		customWidth = width;
+	} else {
+		customWidth = width + 4 - width % 4;
+	}
+	customHeight = height;
+}
+
+
+void XYplane__UseColor_(OBNC_INTEGER color)
+{
+	colors[1] = color;
+}
+
+
+OBNC_INTEGER XYplane__Color_(OBNC_INTEGER x, OBNC_INTEGER y)
+{
+	return ((plane != NULL) && WITHIN_BOUNDS(x, y))? *PIXEL_PTR(x, y): 0;
 }
 
 

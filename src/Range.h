@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -20,32 +20,32 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "../lib/obnc/OBNC.h"
 
-void Range_CheckIntSum(OBNC_LONGI int a, OBNC_LONGI int b);
+void Range_CheckIntSum(OBNC_INTEGER a, OBNC_INTEGER b);
 
-void Range_CheckIntDiff(OBNC_LONGI int a, OBNC_LONGI int b);
+void Range_CheckIntDiff(OBNC_INTEGER a, OBNC_INTEGER b);
 
-void Range_CheckIntProd(OBNC_LONGI int a, OBNC_LONGI int b);
+void Range_CheckIntProd(OBNC_INTEGER a, OBNC_INTEGER b);
 
-void Range_CheckLSL(OBNC_LONGI int n);
+void Range_CheckLSL(OBNC_INTEGER n);
 
-void Range_CheckASR(OBNC_LONGI int n);
+void Range_CheckASR(OBNC_INTEGER n);
 
-void Range_CheckROR(OBNC_LONGI int n);
+void Range_CheckROR(OBNC_INTEGER n);
 
-void Range_CheckBIT(OBNC_LONGI int n);
+void Range_CheckBIT(OBNC_INTEGER n);
 
-void Range_CheckFLOOR(OBNC_LONGR double x);
+void Range_CheckFLOOR(OBNC_REAL x);
 
-void Range_CheckCHR(OBNC_LONGI int n);
+void Range_CheckCHR(OBNC_INTEGER n);
 
-void Range_CheckRealSum(OBNC_LONGR double x, OBNC_LONGR double y);
+void Range_CheckRealSum(OBNC_REAL x, OBNC_REAL y);
 
-void Range_CheckRealDiff(OBNC_LONGR double x, OBNC_LONGR double y);
+void Range_CheckRealDiff(OBNC_REAL x, OBNC_REAL y);
 
-void Range_CheckRealProd(OBNC_LONGR double x, OBNC_LONGR double y);
+void Range_CheckRealProd(OBNC_REAL x, OBNC_REAL y);
 
-void Range_CheckByte(OBNC_LONGI int n);
+void Range_CheckByte(OBNC_INTEGER n);
 
-void Range_CheckSetElement(OBNC_LONGI int x);
+void Range_CheckSetElement(OBNC_INTEGER x);
 
 #endif

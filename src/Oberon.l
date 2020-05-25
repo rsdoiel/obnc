@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -88,28 +88,20 @@ ORDINAL-STRING [0-9][0-9A-F]*X
 	lexeme = strtoul(yytext, NULL, base);
 	if ((errno != 0) || (lexeme > max)) {
 		if (base == 10) {
-			yyerror("warning: %s: %s > %lu", strerror(ERANGE), yytext, max);
+			Oberon_PrintError("warning: %s: %s > %lu", strerror(ERANGE), yytext, max);
 		} else {
-			yyerror("warning: %s: %s > 0%lXH", strerror(ERANGE), yytext, max);
+			Oberon_PrintError("warning: %s: %s > 0%lXH", strerror(ERANGE), yytext, max);
 		}
 	}
-	yylval.integer = (OBNC_LONGI int) lexeme;
+	yylval.integer = (OBNC_INTEGER) lexeme;
 	return INTEGER;
 }
 
 {REAL} {
-#if OBNC_CONFIG_USE_LONG_REAL
-	int n = sscanf(yytext, "%Lf", &yylval.real);
+	int n = sscanf(yytext, "%" OBNC_REAL_MOD_R "f", &yylval.real);
 	if (n != 1) {
-		yyerror("warning: %s: %s > %LG", strerror(ERANGE), yytext, LDBL_MAX);
+		Oberon_PrintError("warning: %s: %s > %" OBNC_REAL_MOD_W "G", strerror(ERANGE), yytext, OBNC_REAL_MAX);
 	}
-#else
-	errno = 0;
-	yylval.real = strtod(yytext, NULL);
-	if (errno != 0) {
-		yyerror("warning: %s: %s > %G", strerror(ERANGE), yytext, DBL_MAX);
-	}
-#endif
 	return REAL;
 }
 
@@ -135,7 +127,7 @@ ORDINAL-STRING [0-9][0-9A-F]*X
 		errno = 0;
 		ordinalNumber = strtol(yytext, NULL, 16);
 		if ((errno != 0) || (ordinalNumber > UCHAR_MAX)) {
-			yyerror("warning: %s: %s > 0%XX", strerror(ERANGE), yytext, UCHAR_MAX);
+			Oberon_PrintError("warning: %s: %s > 0%XX", strerror(ERANGE), yytext, UCHAR_MAX);
 		}
 	}
 	NEW_ARRAY(lexeme, 2);
@@ -179,16 +171,16 @@ ORDINAL-STRING [0-9][0-9A-F]*X
 	/*Note: In Flex 2.6.0 and earlier, input returns EOF (-1) instead of 0 when end-of-file is reached.*/
 
 	if (level > 0) {
-		yyerror("error: unterminated comment starting at line %d", linenoStart);
+		Oberon_PrintError("error: unterminated comment starting at line %d", linenoStart);
 		exit(EXIT_FAILURE);
 	}
 }
 
 . {
 	if (isprint(yytext[0])) {
-		yyerror("error: unexpected character: %c", yytext[0]);
+		Oberon_PrintError("error: unexpected character: %c", yytext[0]);
 	} else {
-		yyerror("error: unexpected character: %02X (hex)", yytext[0]);
+		Oberon_PrintError("error: unexpected character: %02X (hex)", yytext[0]);
 	}
 	exit(EXIT_FAILURE);
 }

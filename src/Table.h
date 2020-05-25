@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -34,6 +34,8 @@ void Table_OpenScope(void);
 void Table_CloseScope(void);
 
 int Table_ScopeLocal(void);
+
+Trees_Node Table_UnusedIdentifiers(void);
 
 void Table_Import(const char filename[], const char module[], const char qualifier[]);
 

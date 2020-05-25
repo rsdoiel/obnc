@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -17,7 +17,7 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*)
 
 MODULE StringsTest;
 
-	IMPORT Out, Strings;
+	IMPORT Strings;
 
 	VAR
 		shortStr: ARRAY 4 OF CHAR;
@@ -98,13 +98,16 @@ BEGIN
 	ASSERT(shortStr = "");
 
 	(*test Pos*)
-	ASSERT(Strings.Pos("", "", 0) = -1);
-	ASSERT(Strings.Pos("", "foo", 0) = -1);
+	ASSERT(Strings.Pos("", "", 0) = 0);
+	ASSERT(Strings.Pos("", "foo", 0) = 0);
+	ASSERT(Strings.Pos("", "foo", 1) = 1);
+	ASSERT(Strings.Pos("", "foo", 3) = 3);
 	ASSERT(Strings.Pos("foo", "foo", 0) = 0);
 	ASSERT(Strings.Pos("foo", "fool", 0) = 0);
 	ASSERT(Strings.Pos("ool", "fool", 0) = 1);
 	ASSERT(Strings.Pos("oo", "fool", 0) = 1);
 	ASSERT(Strings.Pos("fools", "fool", 0) = -1);
+	ASSERT(Strings.Pos("ools", "fool", 0) = -1);
 	ASSERT(Strings.Pos("ol", "fool", 1) = 2);
 
 	(*test Cap*)

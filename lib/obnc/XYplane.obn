@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,11 +7,11 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.*)
 MODULE XYplane;
 (**Basic facilities for graphics programming
 
-Implements the basic library module from "The Oakwood Guidelines for Oberon-2 Compiler Developers". The drawing plane is repainted when Key is invoked. Fullscreen mode is toggled with Ctrl-f; it can also be exited with Esc. As a consequence of how this module is implemented, a program using XYplane must import XYplane in the entry point module.*)
+Implements the basic library module from "The Oakwood Guidelines for Oberon-2 Compiler Developers". The drawing plane is repainted when Key is invoked. Fullscreen mode is toggled with Ctrl-f; it can also be exited with Esc.*)
 
 (*implemented in C*)
 
-	IMPORT Input;
+	IMPORT Input; (*required by the implementation*)
 
 	CONST
 		(**drawing modes*)
@@ -44,34 +44,42 @@ Implements the basic library module from "The Oakwood Guidelines for Oberon-2 Co
 	RETURN CHR(0) (*dummy value*)
 	END Key;
 
+	PROCEDURE SetSize*(width, height: INTEGER);
+(**sets the width and height of the drawing plane. The setting takes effect when Open is called. NOTE: This procedure is an extension to The Oakwood Guidelines.*)
+	END SetSize;
+
+	PROCEDURE UseColor*(color: INTEGER);
+(**sets the red, green and blue components of the drawing color as a three-byte value. NOTE: This procedure is an extension to The Oakwood Guidelines.*)
+	END UseColor;
+
+	PROCEDURE Color*(x, y: INTEGER): INTEGER;
+(**returns the color of the pixel at the coordinates (x, y). NOTE: This procedure is an extension to The Oakwood Guidelines.*)
+	RETURN 0 (*dummy value*)
+	END Color;
+
 (**Example:
 
-	MODULE fpstest;
-		(*draw dots and print the number of displayed frames per second*)
+MODULE drawpixels;
 
-		IMPORT Input, Out, XYplane;
+	(*click or drag the mouse to draw pixels*)
 
-		VAR
-			n, t, x, y: INTEGER;
+	IMPORT Input, XYplane;
 
-	BEGIN
-		XYplane.Open;
-		n := -1;
-		t := Input.Time();
-		REPEAT
-			INC(n);
-			IF Input.Time() - t >= Input.TimeUnit THEN
-				Out.String("fps: ");
-				Out.Int(n, 0);
-				Out.Ln;
-				n := 0;
-				t := Input.Time()
-			END;
-			x := Input.Time() MOD XYplane.W;
-			y := Input.Time() MOD XYplane.H;
+	VAR
+		x, y: INTEGER;
+		keys: SET;
+
+BEGIN
+	XYplane.Open;
+	REPEAT
+		Input.Mouse(keys, x, y);
+		IF 2 IN keys THEN
 			XYplane.Dot(x, y, XYplane.draw)
-		UNTIL XYplane.Key() = "q"
-	END fpstest.
+		END
+	UNTIL XYplane.Key() = "q"
+END drawpixels.
 *)
 
+BEGIN
+	ASSERT(Input.TimeUnit > 0) (*silence "Input unused" compiler note*)
 END XYplane.

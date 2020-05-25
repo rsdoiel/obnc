@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,11 +35,11 @@ void In__Char_(char *ch)
 }
 
 
-void In__Int_(OBNC_LONGI int *x)
+void In__Int_(OBNC_INTEGER *x)
 {
 	int ch, i, n;
-	char buf[(CHAR_BIT * sizeof (OBNC_LONGI int) / 3) + 3];
-	OBNC_LONGI unsigned int y;
+	char buf[(CHAR_BIT * sizeof (OBNC_INTEGER) / 3) + 3];
+	unsigned OBNC_INTEGER y;
 
 	In__Done_ = 0;
 	do {
@@ -62,7 +62,7 @@ void In__Int_(OBNC_LONGI int *x)
 			if (ch == 'H') {
 				n = sscanf(buf, "%" OBNC_INT_MOD "x", &y);
 				if (n == 1) {
-					*x = (OBNC_LONGI int) y;
+					*x = (OBNC_INTEGER) y;
 				}
 			} else {
 				n = sscanf(buf, "%" OBNC_INT_MOD "d", x);
@@ -81,7 +81,7 @@ void In__Int_(OBNC_LONGI int *x)
 }
 
 
-void In__Real_(OBNC_LONGR double *x)
+void In__Real_(OBNC_REAL *x)
 {
 	int scanCount;
 
@@ -93,50 +93,47 @@ void In__Real_(OBNC_LONGR double *x)
 }
 
 
-void In__String_(char str[], OBNC_LONGI int strLen)
+void In__String_(char str[], OBNC_INTEGER strLen)
 {
-	int n, ch, i;
+	int ch, i, ord;
 
 	In__Done_ = 0;
-	n = 0;
 	do {
 		ch = getchar();
-		n++;
 	} while (isspace(ch));
 	if (ch == '"') {
 		i = 0;
 		ch = getchar();
-		n++;
 		while ((ch != EOF) && (ch != '"') && (ch != '\n') && (i < strLen)) {
 			str[i] = (char) ch;
 			i++;
 			ch = getchar();
-			n++;
 		}
 		if ((ch == '"') && (i < strLen)) {
 			str[i] = '\0';
 			In__Done_ = 1;
-		} else {
-			str[0] = '\0';
 		}
-	} else {
-		if (ch != EOF) {
-			ch = ungetc(ch, stdin);
-			if (ch != EOF) {
-				n--;
-			}
+	} else if (isdigit(ch)) {
+		ord = ch - '0';
+		ch = getchar();
+		while ((isdigit(ch) || ((ch >= 'A') && (ch <= 'F'))) && (ord < UCHAR_MAX)) {
+			ord = isdigit(ch)? ord * 16 + ch - '0': ord * 16 + 10 + ch - 'A';
+			ch = getchar();
+		}
+		if ((ch == 'X') && (ord <= UCHAR_MAX) && (strLen >= 2)) {
+			str[0] = (char) ord;
+			str[1] = '\0';
+			In__Done_ = 1;
 		}
 	}
-	if (ch == EOF) {
-		n--;
+	if (! In__Done_) {
+		str[0] = '\0';
 	}
-	if (n > 0) {
-		inputConsumed = 1;
-	}
+	inputConsumed = 1;
 }
 
 
-void In__Name_(char name[], OBNC_LONGI int nameLen)
+void In__Name_(char name[], OBNC_INTEGER nameLen)
 {
 	int n, ch, i;
 
@@ -166,6 +163,30 @@ void In__Name_(char name[], OBNC_LONGI int nameLen)
 	}
 	if (n > 0) {
 		inputConsumed = 1;
+	}
+}
+
+
+void In__Line_(char line[], OBNC_INTEGER lineLen)
+{
+	int i, ch;
+
+	i = 0;
+	ch = getchar();
+	while ((ch != EOF) && (ch != '\n') && (i < lineLen)) {
+		line[i] = (char) ch;
+		i++;
+		ch = getchar();
+	}
+	if ((i > 0) || (ch == '\n')) {
+		inputConsumed = 1;
+	}
+	if (((ch != EOF) && (i < lineLen)) || ((ch == EOF) && (i > 0))) {
+		line[i] = '\0';
+		In__Done_ = 1;
+	} else {
+		line[0] = '\0';
+		In__Done_ = 0;
 	}
 }
 

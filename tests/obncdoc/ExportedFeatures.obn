@@ -8,6 +8,8 @@ MODULE ExportedFeatures; (**documentation...*)
 		t = 37;
 
 	TYPE
+		T0 = INTEGER;
+
 		(*documentation...*)
 		T* = RECORD
 			f*: RECORD (**documentation...*)
@@ -42,7 +44,7 @@ documentation...*)
 	END Q;
 
 
-	PROCEDURE R*;
+	PROCEDURE R*((**in/out*) VAR x: INTEGER; (**out*) VAR y: REAL; (*out*) VAR z: BYTE);
 (**documentation...*)
 	END R;
 

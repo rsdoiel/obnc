@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,9 +27,9 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.*/
 
 /*----- Windows Implementation*/
 
-OBNC_LONGI int Input0__TimeUnit_ = 1000;
+OBNC_INTEGER Input0__TimeUnit_ = 1000;
 
-OBNC_LONGI int Input0__Available_(void)
+OBNC_INTEGER Input0__Available_(void)
 {
 	HANDLE inputHandle;
 	INPUT_RECORD events[256];
@@ -62,7 +62,7 @@ void Input0__Read_(char *ch)
 }
 
 
-OBNC_LONGI int Input0__Time_(void)
+OBNC_INTEGER Input0__Time_(void)
 {
 	return GetTickCount();
 }
@@ -71,7 +71,13 @@ OBNC_LONGI int Input0__Time_(void)
 
 /*----- POSIX Implementation*/
 
-OBNC_LONGI int Input0__TimeUnit_ = (sizeof (OBNC_LONGI int) < 8)? 1000: 1000000000;
+#if OBNC_INT_MAX <= ((1u << 15) - 1)
+	OBNC_INTEGER Input0__TimeUnit_ = 1;
+#elif OBNC_INT_MAX <= ((1u << 31) - 1)
+	OBNC_INTEGER Input0__TimeUnit_ = 1000;
+#else
+	OBNC_INTEGER Input0__TimeUnit_ = 1000000000;
+#endif
 
 /*Keyboard buffer data structure*/
 
@@ -96,7 +102,7 @@ static void Dequeue(char *ch)
 }
 
 
-OBNC_LONGI int Input0__Available_(void)
+OBNC_INTEGER Input0__Available_(void)
 {
 	int result, error, oldf, status, ch;
 	struct termios oldt, newt;
@@ -192,11 +198,11 @@ static int clock_gettime(int clock_id, struct timespec *result)
 
 #endif
 
-OBNC_LONGI int Input0__Time_(void)
+OBNC_INTEGER Input0__Time_(void)
 {
 	struct timespec now;
 	int error;
-	OBNC_LONGI int result = -1;
+	OBNC_INTEGER result = -1;
 
 	error = clock_gettime(CLOCK_MONOTONIC, &now);
 	if (! error) {

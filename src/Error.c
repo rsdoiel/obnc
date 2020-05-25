@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -35,8 +35,8 @@ static void HandleError(const char msg[]) /*default error handler*/
 void Error_Init(void)
 {
 	if (! initialized) {
-		handleError = HandleError;
 		initialized = 1;
+		handleError = HandleError;
 	}
 }
 

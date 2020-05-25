@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -137,7 +137,7 @@ int Types_IsString(Trees_Node type)
 }
 
 
-OBNC_LONGI int Types_StringLength(Trees_Node stringType)
+OBNC_INTEGER Types_StringLength(Trees_Node stringType)
 {
 	assert(Types_IsString(stringType));
 
@@ -199,14 +199,17 @@ Trees_Node Types_Structure(Trees_Node type)
 
 Trees_Node Types_UnaliasedIdent(Trees_Node type)
 {
-	Trees_Node result;
+	Trees_Node result, refType;
 
 	assert(type != NULL);
 	assert(Trees_Symbol(type) == IDENT);
 
 	result = type;
-	while (Trees_Symbol(Trees_Type(result)) == IDENT) {
-		result = Trees_Type(result);
+	refType = Trees_Type(type);
+	while ((refType != NULL) && (Trees_Symbol(refType) == IDENT)) {
+		result = refType;
+		refType = Trees_Type(refType);
+		
 	}
 	return result;
 }
@@ -335,10 +338,24 @@ int Types_Extensible(Trees_Node type)
 }
 
 
+static Trees_Node NamedDescriptor(Trees_Node extensibleType)
+{
+	Trees_Node desc, result;
+	
+	desc = Types_Descriptor(extensibleType);
+	if (Trees_Symbol(desc) == IDENT) {
+		result = desc;
+	} else {
+		result = extensibleType; /*pointer to anonymous record*/
+	}
+	return result;
+}
+
+
 int Types_Extends(Trees_Node baseType, Trees_Node extendedType)
 {
 	int result;
-	Trees_Node baseTypeRecord, intermediateType;
+	Trees_Node baseName, intermediateType;
 
 	assert(baseType != NULL);
 	assert(extendedType != NULL);
@@ -346,13 +363,12 @@ int Types_Extends(Trees_Node baseType, Trees_Node extendedType)
 	if (Types_Same(Types_Descriptor(baseType), Types_Descriptor(extendedType))) {
 		result = 1;
 	} else {
-		baseTypeRecord = Types_Descriptor(baseType);
+		baseName = NamedDescriptor(baseType);
 		intermediateType = Types_RecordBaseType(extendedType);
 		while ((intermediateType != NULL)
-				&& ! Types_Same(Types_Descriptor(intermediateType), baseTypeRecord)) {
+				&& ! Types_Same(NamedDescriptor(intermediateType), baseName)) {
 			intermediateType = Types_RecordBaseType(intermediateType);
 		}
-
 		result = intermediateType != NULL;
 	}
 	return result;
@@ -557,7 +573,9 @@ int Types_Same(Trees_Node typeA, Trees_Node typeB)
 	return (Types_Structure(typeA) == Types_Structure(typeB))
 		|| (Types_Basic(typeA) && Types_Basic(typeB) && (Trees_Symbol(typeA) == Trees_Symbol(typeB)))
 		|| ((Trees_Symbol(typeA) == IDENT) && (Trees_Symbol(typeB) == IDENT)
-			&& (strcmp(Trees_UnaliasedName(typeA), Trees_UnaliasedName(typeB)) == 0));
+			&& (strcmp(
+				Trees_UnaliasedName(Types_UnaliasedIdent(typeA)), 
+				Trees_UnaliasedName(Types_UnaliasedIdent(typeB))) == 0));
 }
 
 

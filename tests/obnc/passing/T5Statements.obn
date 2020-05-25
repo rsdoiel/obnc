@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -16,8 +16,6 @@ You should have received a copy of the GNU General Public License
 along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*)
 
 MODULE T5Statements;
-
-	IMPORT SYSTEM;
 
 	TYPE
 		T0 = RECORD END;
@@ -37,6 +35,8 @@ MODULE T5Statements;
 		CircleDesc = RECORD (ShapeDesc)
 			r: REAL
 		END;
+
+		String = ARRAY 256 OF CHAR;
 
 	VAR
 		globalInteger: INTEGER;
@@ -81,7 +81,8 @@ MODULE T5Statements;
 
 	PROCEDURE TestArrayAssignments;
 		VAR str, str1: ARRAY 60 OF CHAR;
-			strs: ARRAY 2, 60 OF CHAR;
+			strs, strs1: ARRAY 2 OF String;
+			strs2: ARRAY 1, 2 OF String;
 
 		PROCEDURE AssignString(VAR s: ARRAY OF CHAR);
 		BEGIN
@@ -91,8 +92,17 @@ MODULE T5Statements;
 		PROCEDURE AssignOpenArray(s: ARRAY OF CHAR);
 			VAR t: ARRAY 128 OF CHAR;
 		BEGIN
-			t := s
+			t := s;
+			ASSERT(t = s)
 		END AssignOpenArray;
+
+		PROCEDURE AssignMultiDimOpenArray(s: ARRAY OF ARRAY OF String);
+			VAR t: ARRAY 2 OF String;
+		BEGIN
+			t := s[0];
+			ASSERT(t[0] = s[0, 0]);
+			ASSERT(t[1] = s[0, 1])
+		END AssignMultiDimOpenArray;
 
 	BEGIN
 		str := "testing, testing...";
@@ -102,12 +112,21 @@ MODULE T5Statements;
 		AssignString(str);
 		ASSERT(str = "hello");
 		AssignOpenArray("hello");
+		
 		strs[0] := "foo";
 		ASSERT(strs[0] = "foo");
 		strs[1] := "bar";
 		ASSERT(strs[1] = "bar");
 		strs[1] := strs[0];
-		ASSERT(strs[1] = "foo")
+		ASSERT(strs[1] = "foo");
+		
+		strs[0] := "foo";
+		strs[1] := "bar";
+		strs1 := strs;
+		ASSERT(strs1[0] = "foo");
+		ASSERT(strs1[1] = "bar");
+		
+		AssignMultiDimOpenArray(strs2)
 	END TestArrayAssignments;
 
 
@@ -349,77 +368,6 @@ MODULE T5Statements;
 	END TestPredeclaredProperProcedures;
 
 
-	PROCEDURE TestSystemProcedures;
-		CONST byte = SYSTEM.VAL(BYTE, 100);
-		TYPE Array = ARRAY 2 OF INTEGER;
-			Pointer = POINTER TO RECORD END;
-		VAR b, b1: BOOLEAN;
-			ch, ch1: CHAR;
-			i, i1: INTEGER;
-			r, r1: REAL;
-			x, x1: BYTE;
-			xs: ARRAY 2 OF BYTE;
-			s, s1: SET;
-			a, a1: Array;
-			a2: ARRAY SYSTEM.SIZE(Array) + 1 OF INTEGER;
-	BEGIN
-		(*ASSERT(SYSTEM.SIZE(INTEGER) = SYSTEM.SIZE(Pointer));
-
-		(*ADR, PUT, GET*)
-		b := TRUE;
-		SYSTEM.GET(SYSTEM.ADR(b), b1);
-		ASSERT(b1 = b);
-		SYSTEM.PUT(SYSTEM.ADR(b), FALSE);
-		ASSERT(~b);
-		ch := "a";
-		SYSTEM.GET(SYSTEM.ADR(ch), ch1);
-		ASSERT(ch1 = ch);
-		SYSTEM.PUT(SYSTEM.ADR(ch), "b");
-		ASSERT(ch = "b");
-		SYSTEM.PUT(SYSTEM.ADR(ch), ch1);
-		ASSERT(ch = ch1);
-		i := 1;
-		SYSTEM.GET(SYSTEM.ADR(i), i1);
-		ASSERT(i1 = i);
-		SYSTEM.PUT(SYSTEM.ADR(i), 0);
-		ASSERT(i = 0);
-		r := 1.0;
-		SYSTEM.GET(SYSTEM.ADR(r), r1);
-		ASSERT(r1 = r);
-		SYSTEM.PUT(SYSTEM.ADR(r), 0.0);
-		ASSERT(r = 0.0);
-		x := 1;
-		SYSTEM.GET(SYSTEM.ADR(x), x1);
-		ASSERT(x1 = x);
-		SYSTEM.PUT(SYSTEM.ADR(x), 0);
-		ASSERT(x = 0);
-		s := {0};
-		SYSTEM.GET(SYSTEM.ADR(s), s1);
-		ASSERT(s1 = s);
-		SYSTEM.PUT(SYSTEM.ADR(s), {});
-		ASSERT(s = {});
-
-		(*BIT*)
-		i := 1;
-		ASSERT(SYSTEM.BIT(SYSTEM.ADR(i), 0));
-		i := 2;
-		ASSERT(~SYSTEM.BIT(SYSTEM.ADR(i), 0));
-		ASSERT(SYSTEM.BIT(SYSTEM.ADR(i), 1));
-
-		(*COPY*)
-		a[0] := 1; a[1] := 2;
-		SYSTEM.COPY(SYSTEM.ADR(a), SYSTEM.ADR(a1), 2);
-		ASSERT(a1[0] = 1);
-		ASSERT(a1[1] = 2);
-
-		(*VAL*)
-		xs[0] := 1; xs[1] := 2;
-		SYSTEM.PUT(SYSTEM.ADR(xs), SYSTEM.VAL(BYTE, 37));
-		ASSERT(xs[0] = 37);
-		ASSERT(xs[1] = 2);*)
-	END TestSystemProcedures;
-
-
 	PROCEDURE TestIfStatements;
 		VAR n: INTEGER;
 	BEGIN
@@ -594,7 +542,6 @@ BEGIN
 	TestAssignments;
 	TestProcedureCalls;
 	TestPredeclaredProperProcedures;
-	TestSystemProcedures;
 	TestIfStatements;
 	TestCaseStatements;
 	TestWhileStatements;

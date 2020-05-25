@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -17,7 +17,7 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*)
 
 MODULE FilesTest;
 
-	IMPORT Files;
+	IMPORT Files, SYSTEM;
 
 	PROCEDURE TestOld;
 		VAR f: Files.File;
@@ -175,7 +175,7 @@ MODULE FilesTest;
 		ASSERT(month <= 12);
 		day := d MOD 32;
 		ASSERT(day >= 1);
-		ASSERT(day <= 31);
+		ASSERT(day <= 31)
 	END TestDate;
 
 
@@ -272,10 +272,10 @@ MODULE FilesTest;
 		Files.Set(r, f, 0);
 		Files.ReadReal(r, x);
 		ASSERT(~r.eof);
-		ASSERT(x = 3.14);
+		ASSERT(ABS(x - 3.14) < 1.0E-6);
 		Files.ReadReal(r, x);
 		ASSERT(~r.eof);
-		ASSERT(x = -3.14);
+		ASSERT(ABS(x - (-3.14)) < 1.0E-6);
 		Files.ReadReal(r, x);
 		ASSERT(r.eof)
 	END TestReadWriteReal;
@@ -434,14 +434,18 @@ BEGIN
 	TestDelete;
 	TestRename;
 	TestLength;
-	TestDate;
+	IF SYSTEM.SIZE(INTEGER) >= 4 THEN
+		TestDate
+	END;
 	TestSet;
 	TestPos;
 	TestBase;
 	TestReadWrite;
 	TestReadWriteInt;
 	TestReadWriteReal;
-	TestReadWriteNum;
+	IF SYSTEM.SIZE(INTEGER) >= 4 THEN
+		TestReadWriteNum;
+	END;
 	TestReadWriteString;
 	TestReadWriteSet;
 	TestReadWriteBool;

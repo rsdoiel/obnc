@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -16,4 +16,7 @@ You should have received a copy of the GNU General Public License
 along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*)
 
 MODULE D;
+
+	CONST b* = TRUE;
+
 END D.

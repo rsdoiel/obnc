@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -24,8 +24,8 @@ readonly LEX="${LEX:-lex}"
 readonly YACC="${YACC:-yacc}"
 prefix="/usr/local"
 libdir="lib"
-useLongInt=false
-useLongReal=false
+cIntType=int
+cRealType=double
 
 EchoAndRun()
 {
@@ -53,7 +53,10 @@ BuildCSource()
 			trap "rm '$bakFile'" EXIT
 		fi
 
-		EchoAndRun "$YACC" -d -t Oberon.y
+		#option -D is a Bison extension to POSIX yacc
+		if ! EchoAndRun "$YACC" -D parse.error=verbose -d -t Oberon.y; then
+			EchoAndRun "$YACC" -d -t Oberon.y
+		fi
 
 		#preserve timestamp of y.tab.h if it is unchanged
 		if cmp -s y.tab.h "$bakFile"; then
@@ -83,8 +86,8 @@ Build()
 	{
 		echo "prefix=$prefix"
 		echo "libdir=$libdir"
-		echo "useLongInt=$useLongInt"
-		echo "useLongReal=$useLongReal"
+		echo "cIntType=$cIntType"
+		echo "cRealType=$cRealType"
 		echo "version=$version"
 	} > CONFIG
 
@@ -98,6 +101,7 @@ Build()
 			printf "#define CONFIG_DEFAULT_LIBDIR \"%s\"\n" "$libdir"
 			printf "#define CONFIG_VERSION \"%s\"\n" "$version"
 			echo
+			echo "void Config_Init(void);"
 			echo "const char *Config_Prefix(void);"
 			echo "const char *Config_LibDir(void);"
 			echo
@@ -107,20 +111,37 @@ Build()
 			echo "#ifndef OBNC_CONFIG_H"
 			echo "#define OBNC_CONFIG_H"
 			echo
-			echo "#ifndef OBNC_CONFIG_USE_LONG_INT"
-			if "$useLongInt"; then
-				echo "#define OBNC_CONFIG_USE_LONG_INT 1"
-			else
-				echo "#define OBNC_CONFIG_USE_LONG_INT 0"
-			fi
+			echo "#define OBNC_CONFIG_SHORT 0"
+			echo "#define OBNC_CONFIG_INT 1"
+			echo "#define OBNC_CONFIG_LONG 2"
+			echo "#define OBNC_CONFIG_LONG_LONG 3"
+			echo
+			echo "#define OBNC_CONFIG_FLOAT 0"
+			echo "#define OBNC_CONFIG_DOUBLE 1"
+			echo "#define OBNC_CONFIG_LONG_DOUBLE 2"
+			echo
+			echo "#ifndef OBNC_CONFIG_C_INT_TYPE"
+			case "$cIntType" in
+				short)
+					echo "#define OBNC_CONFIG_C_INT_TYPE OBNC_CONFIG_SHORT";;
+				int)
+					echo "#define OBNC_CONFIG_C_INT_TYPE OBNC_CONFIG_INT";;
+				long)
+					echo "#define OBNC_CONFIG_C_INT_TYPE OBNC_CONFIG_LONG";;
+				longlong)
+					echo "#define OBNC_CONFIG_C_INT_TYPE OBNC_CONFIG_LONG_LONG";;
+			esac
 			echo "#endif"
 			echo
-			echo "#ifndef OBNC_CONFIG_USE_LONG_REAL"
-			if "$useLongReal"; then
-				echo "#define OBNC_CONFIG_USE_LONG_REAL 1"
-			else
-				echo "#define OBNC_CONFIG_USE_LONG_REAL 0"
-			fi
+			echo "#ifndef OBNC_CONFIG_C_REAL_TYPE"
+			case "$cRealType" in
+				float)
+					echo "#define OBNC_CONFIG_C_REAL_TYPE OBNC_CONFIG_FLOAT";;
+				double)
+					echo "#define OBNC_CONFIG_C_REAL_TYPE OBNC_CONFIG_DOUBLE";;
+				longdouble)
+					echo "#define OBNC_CONFIG_C_REAL_TYPE OBNC_CONFIG_LONG_DOUBLE";;
+			esac
 			echo "#endif"
 			echo
 			echo "#ifndef OBNC_CONFIG_TARGET_EMB"
@@ -208,23 +229,23 @@ CleanAll()
 PrintHelp()
 {
 	echo "usage: "
-	printf "\tbuild [c-source | clean | clean-all] [--libdir=LIBDIR] [--prefix=PREFIX] [--use-long-int] [--use-long-real]\n"
+	printf "\tbuild [c-source | clean | clean-all] [--c-int-type=(short|int|long|longlong)] [--c-real-type=(float|double|longdouble)] [--libdir=LIBDIR] [--prefix=PREFIX]\n"
 	printf "\tbuild -h\n"
 	echo
 	printf "\tc-source\tbuild only Yacc and Lex C source files\n"
 	printf "\tclean\t\tdelete all generated files except Yacc and Lex C files\n"
 	printf "\tclean-all\tdelete all generated files\n"
+	printf "\t--c-int-type\tC type for INTEGER and SET (defaults to int)\n"
+	printf "\t--c-real-type\tC type for REAL (defaults to double)\n"
 	printf "\t--libdir\tlibrary installation directory instead of lib\n"
 	printf "\t--prefix\ttoplevel installation directory instead of /usr/local\n"
-	printf "\t--use-long-int\tuse \`long' type specifier for INTEGER and SET\n"
-	printf "\t--use-long-real\tuse \`long' type specifier for REAL\n"
 	printf "\t-h\t\tdisplay help and exit\n"
 }
 
 
 ExitInvalidCommand()
 {
-	echo "invalid command. Try 'build -h' for more information." >&2
+	echo "Try 'build -h' for more information." >&2
 	exit 1
 }
 
@@ -251,25 +272,34 @@ Run()
 				action=clean;;
 			clean-all)
 				action=clean-all;;
+			--c-int-type=*)
+				cIntType="${arg#--c-int-type=}"
+				if ! { echo "$cIntType" | grep -q '^\(short\|int\|long\|longlong\)$'; }; then
+					echo "invalid operand for option c-int-type: $cIntType" >&2
+					ExitInvalidCommand
+				fi;;
+			--c-real-type=*)
+				cRealType="${arg#--c-real-type=}"
+				if ! { echo "$cRealType" | grep -q '^\(float\|double\|longdouble\)$'; }; then
+					echo "invalid operand for option c-real-type: $cRealType" >&2
+					ExitInvalidCommand
+				fi;;
 			--libdir=*)
 				libdir="${arg#--libdir=}"
 				if [ "${libdir#*/}" != "$libdir" ]; then
-					echo "libdir must be a directory name, not a path: $prefix" >&2
+					echo "operand for option 'libdir' must be a directory name, not a path: $prefix" >&2
 					exit 1
 				fi;;
 			--prefix=*)
 				prefix="${arg#--prefix=}"
 				if ! PathAbsolute "$prefix"; then
-					echo "prefix must be an absolute path: $prefix" >&2
+					echo "operand for option 'prefix' must be an absolute path: $prefix" >&2
 					exit 1
 				fi;;
-			--use-long-int)
-				useLongInt=true;;
-			--use-long-real)
-				useLongReal=true;;
 			-h)
 				helpWanted=true;;
 			*)
+				echo "invalid argument: $arg"
 				ExitInvalidCommand
 		esac
 	done

@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -243,8 +243,10 @@ MODULE T6ProcedureDeclarations;
 			Proc = PROCEDURE (x: List): List;
 		VAR
 			TestScope: PROCEDURE;
+			p: Proc;
 	BEGIN
-		TestScope := NIL
+		TestScope := NIL;
+		p := NIL
 	END TestScope;
 
 BEGIN

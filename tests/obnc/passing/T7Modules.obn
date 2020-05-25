@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -37,6 +37,11 @@ MODULE T7Modules;
 		y: A.Nested;
 		list: A.List;
 		matrix: ARRAY 2, 3 OF INTEGER;
+		x0: B.P0;
+		x1: B1.P1;
+		t: B1.T;
+		p: B1.P1;
+		p1: ListExt;
 
 BEGIN
 	ASSERT(A.boolConst);
@@ -44,12 +49,15 @@ BEGIN
 	ASSERT(A.intConst = 1);
 	ASSERT(A.realConst = 2.3);
 	ASSERT(A.strConst = "hello there");
+	ASSERT(A.nul = 0X);
+	ASSERT(A.lf = 0AX);
+	ASSERT(A.charMax = 0FFX);
 	ASSERT(A.setConst = {0, 2, 3, 5});
 
 	ASSERT(A.boolVar = A.boolConst);
 	ASSERT(A.charVar = A.charConst);
 	ASSERT(A.intVar = A.intConst);
-	ASSERT(A.realVar = A.realConst);
+	ASSERT(ABS(A.realVar - A.realConst) < 1.0E-6);
 	ASSERT(A.strVar = A.strConst);
 	ASSERT(A.setVar = A.setConst);
 	ASSERT(A.recVar.f = 1);
@@ -61,7 +69,17 @@ BEGIN
 	w := x;
 	A.Q(x);
 	NEW(list);
-	A.R(matrix)
+	A.R(matrix);
+	x0 := x1;
+	A.S(t);
+	A.S1(p);
+	
+	ASSERT(D.b);
+	ASSERT(E.b);
+	ASSERT(T7Modules.b);
+	ASSERT(lib1M.b);
+	ASSERT(OBNC.b);
+	p1 := NIL
 END T7Modules.
 
 All text after a module should be ignored

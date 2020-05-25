@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -19,7 +19,11 @@ MODULE lib1M;
 
 	IMPORT Local;
 
+	CONST b* = TRUE;
+
 	VAR
 		x: Local.T;
 
+BEGIN
+	x.f := 0
 END lib1M.

@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -19,6 +19,7 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 #define UTIL_H
 
 #include <gc/gc.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,23 +27,27 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #define NEW_ARRAY(ptr, n) \
 	{ \
+		assert(Util_initialized); \
 		(ptr) = GC_MALLOC((size_t) (n) * sizeof (ptr)[0]); \
 		if ((ptr) == NULL) { \
-			fprintf(stderr, "error: Memory exhausted\n"); \
+			fputs("error: Memory exhausted\n", stderr); \
 			exit(EXIT_FAILURE); \
 		} \
 	}
 
 #define RENEW_ARRAY(ptr, n) \
 	{ \
+		assert(Util_initialized); \
 		(ptr) = GC_REALLOC((ptr), (size_t) (n) * sizeof (ptr)[0]); \
 		if ((ptr) == NULL) { \
-			fprintf(stderr, "error: Memory exhausted\n"); \
+			fputs("error: Memory exhausted\n", stderr); \
 			exit(EXIT_FAILURE); \
 		} \
 	}
 
 #define NEW(ptr) NEW_ARRAY((ptr), 1)
+
+extern int Util_initialized; /*don't use*/
 
 void Util_Init(void);
 

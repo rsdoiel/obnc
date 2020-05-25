@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -107,6 +107,9 @@ static void Test(void)
 	Table_Init();
 
 	/*import symbols*/
+	symbol = Trees_NewIdent("Test");
+	Trees_SetKind(TREES_QUALIFIER_KIND, symbol);
+	Table_Put(symbol);
 	Table_Import(symfilename, "Test", "Test");
 
 	result = Table_At("Test.a");

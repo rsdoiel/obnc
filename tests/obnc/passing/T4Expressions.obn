@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License
 along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*)
 
 MODULE T4Expressions;
+
+	IMPORT Out, SYSTEM;
 
 	PROCEDURE IncReturnZero(VAR x: INTEGER): INTEGER;
 	BEGIN
@@ -71,6 +73,9 @@ MODULE T4Expressions;
 	BEGIN
 		a := 4;
 		b := 6;
+Out.Int(ORD({1, 2, a, 5, b, 8}), 0); Out.Ln;
+Out.Int(ORD({1, 2, a..b, 8}), 0); Out.Ln;
+Out.Int(ORD({1, 2, a, 5, b, 8} = {1, 2, a..b, 8}), 0); Out.Ln;
 		ASSERT({1, 2, a, 5, b, 8} = {1, 2, a..b, 8});
 		i := 0;
 		j := 0;
@@ -286,6 +291,11 @@ MODULE T4Expressions;
 		ASSERT(-x + 1.0 <= eps);
 		ASSERT(-x - 1.0 >= -2.0 - eps);
 		ASSERT(-x - 1.0 <= -2.0 + eps);
+		IF SYSTEM.SIZE(REAL) > 8 THEN
+			x := 2.0E+308; (*greater than maximum value of binary64*)
+			ASSERT(x > 1.0E+308);
+			ASSERT(x < 3.0E+308)
+		END;
 
 		(*bytes*)
 		y := 1;
@@ -379,9 +389,12 @@ MODULE T4Expressions;
 			chrConst = CHR(0);
 
 		VAR a: ARRAY 10 OF CHAR;
+			b: BOOLEAN;
 			ch: CHAR;
 			i, j, k: INTEGER;
-			b: BYTE;
+			r: REAL;
+			x: BYTE;
+			s: SET;
 	BEGIN
 		ASSERT(ABS(-1) = 1);
 		ASSERT(ABS(0) = 0);
@@ -434,21 +447,47 @@ MODULE T4Expressions;
 		ASSERT(FLT(0) = 0.0);
 		ASSERT(FLT(1) = 1.0);
 
+		ASSERT(ORD(0X) = 0);
 		ch := 0X;
 		ASSERT(ORD(ch) = 0);
 		ASSERT(ORD("A") = 41H);
+		ch := "A";
+		ASSERT(ORD(ch) = 41H);
+		ASSERT(ORD(0FFX) = 0FFH);
+		ch := 0FFX;
+		ASSERT(ORD(ch) = 0FFH);
+
 		ASSERT(ORD(FALSE) = 0);
+		b := FALSE;
+		ASSERT(ORD(b) = 0);
+		ASSERT(ORD(TRUE) = 1);
+		b := TRUE;
+		ASSERT(ORD(b) = 1);
+
 		ASSERT(ORD({}) = 0);
-		ch := 80X;
-		ASSERT(ORD(ch) = 80H);
+		s := {};
+		ASSERT(ORD(s) = 0);
+		ASSERT(ORD({8}) = 256);
+		s := {8};
+		ASSERT(ORD(s) = 256);
 
 		ASSERT(CHR(0) = 0X);
 		ASSERT(CHR(1) = 1X);
 		ASSERT(CHR(7FH) = 7FX);
 		ch := 7FX;
 		ASSERT(CHR(7FH) = ch);
-		b := 1;
-		ASSERT(CHR(b) = 1X)
+		x := 1;
+		ASSERT(CHR(x) = 1X);
+
+		i := absConst;
+		b := oddConst;
+		i := lslConst;
+		i := asrConst;
+		i := rorConst;
+		i := floorConst;
+		r := fltConst;
+		i := ordConst;
+		ch := chrConst
 	END TestPredeclaredFunctionProcedures;
 
 BEGIN

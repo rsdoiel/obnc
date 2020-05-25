@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -35,6 +35,15 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <stdlib.h>
 #include <string.h>
 
+#define CONST_SECTION 1
+#define TYPE_SECTION 2
+#define VAR_SECTION 3
+#define PROCEDURE_SECTION 4
+#define MODULE_SECTION 5
+
+static int initialized = 0;
+
+static const char *inputFilename;
 static const char *inputModuleName;
 static int isEntryPointModule;
 
@@ -60,13 +69,47 @@ static struct ProcedureDeclNode {
 	struct ProcedureDeclNode *next;
 } *procedureDeclStack;
 
+static int addressOperationUsed;
+
 void Generate_Init(void)
 {
-	static int initialized = 0;
-
 	if (! initialized) {
-		Files_Init();
 		initialized = 1;
+		Config_Init();
+		Files_Init();
+		Oberon_Init();
+		Trees_Init();
+		Util_Init();
+	}
+}
+
+
+static void GenerateInternalDeclarations(int section)
+{
+	static int globalSection;
+	static int internalImportsDeclared;
+	static int internalConstantsDeclared;
+
+	if ((globalSection != PROCEDURE_SECTION) || (section == MODULE_SECTION)) {
+		globalSection = section;
+		switch (section) {
+			case CONST_SECTION:
+			case TYPE_SECTION:
+			case VAR_SECTION:
+			case PROCEDURE_SECTION:
+			case MODULE_SECTION:
+				if (! internalImportsDeclared) {
+					fprintf(cFile, "#include <obnc/OBNC.h>\n");
+					if (! isEntryPointModule) {
+						fprintf(hFile, "#include <obnc/OBNC.h>\n");
+					}
+					internalImportsDeclared = 1;
+				}
+				if (! internalConstantsDeclared) {
+					fprintf(cFile, "\n#define OBERON_SOURCE_FILENAME \"%s\"\n", inputFilename);
+					internalConstantsDeclared = 1;
+				}
+		}
 	}
 }
 
@@ -125,16 +168,21 @@ static void GenerateLocalProcedureIdent(Trees_Node ident, FILE *file, int indent
 static void GenerateIdent(Trees_Node ident, FILE *file, int indent)
 {
 	const char *name;
+	Trees_Node type;
 
 	name = Trees_UnaliasedName(ident);
-	if ((Trees_Kind(ident) == TREES_TYPE_KIND) && Types_Basic(Trees_Type(ident))) {
-		Generate(Trees_Type(ident), file, indent);
+	type = Trees_Type(ident);
+	if ((Trees_Kind(ident) == TREES_TYPE_KIND) && Types_Basic(type)) {
+		Generate(type, file, indent);
 	} else if (Trees_Internal(ident)) {
 		Indent(file, indent);
 		fprintf(file, "%s", name);
 	} else if (ModulePrefixNeeded(ident)) {
 		Indent(file, indent);
 		fprintf(file, "%s__%s_", inputModuleName, name);
+	} else if ((Trees_Kind(ident) == TREES_TYPE_KIND) && Trees_Local(ident) && Types_IsRecord(type)) {
+		/*With T = RECORD ... END in module scope and P = POINTER TO T and T = RECORD ... END in local scope, where P references the global T, we need access to global T's heap type when calling NEW, so T must not be shadowed.*/
+		fprintf(file, "%s_Local", name);
 	} else if ((Trees_Kind(ident) == TREES_PROCEDURE_KIND) && Trees_Local(ident)) {
 		GenerateLocalProcedureIdent(ident, file, indent);
 	} else {
@@ -196,13 +244,9 @@ static void GenerateObjectFileSymbolDefinitions(Trees_Node identList, const char
 
 /*LITERAL GENERATORS*/
 
-static void GenerateReal(OBNC_LONGR double value, FILE *file)
+static void GenerateReal(OBNC_REAL value, FILE *file)
 {
-#if OBNC_CONFIG_USE_LONG_REAL
-	char buffer[LDBL_DIG + 10]; /*LDBL_DIG + strlen("-") + strlen(".") + strlen("e+9999") + strlen("L") + 1*/
-#else
-	char buffer[DBL_DIG + 8]; /*DBL_DIG + strlen("-") + strlen(".") + strlen("e+999") + 1*/
-#endif
+	char buffer[256];
 
 	if (value > OBNC_REAL_MAX) { /*inf*/
 		fprintf(file, "(1.0 / 0.0)");
@@ -215,15 +259,15 @@ static void GenerateReal(OBNC_LONGR double value, FILE *file)
 			fprintf(file, "(-0.0 / 0.0)");
 		}
 	} else {
-#if OBNC_CONFIG_USE_LONG_REAL
-	sprintf(buffer, "%.*" OBNC_REAL_MOD_W "g", LDBL_DIG, value);
-#else
-	sprintf(buffer, "%.*g", DBL_DIG, value);
-#endif
-	if (strpbrk(buffer, ".e") == NULL) { /*formatted as integer?*/
-		strcat(buffer, ".0");
-	}
-	fprintf(file, "%s", buffer);
+		sprintf(buffer, "%.*" OBNC_REAL_MOD_W "g", LDBL_DIG, value);
+		if (strpbrk(buffer, ".e") == NULL) { /*formatted as integer?*/
+			strcat(buffer, ".0");
+		}
+		if (value <= DBL_MAX) {
+			fprintf(file, "%s", buffer);
+		} else {
+			fprintf(file, "OBNC_REAL_SUFFIX(%s)", buffer);
+		}
 	}
 }
 
@@ -233,21 +277,25 @@ static void GenerateString(const char s[], FILE *file)
 	int i;
 
 	fputc('"', file);
-	i = 0;
-	while (s[i] != '\0') {
-		if ((s[i] >= 0) && ((unsigned char) s[i] <= 127)) {
-			if (isprint(s[i])) {
-				if ((s[i] == '"') || (s[i] == '\\')) {
-					fputc('\\', file);
+	if (((unsigned char) s[0] >= 128) && (s[1] == '\0')) {
+		fprintf(file, "\\x%02x", (unsigned char) s[0]);
+	} else {
+		i = 0;
+		while (s[i] != '\0') {
+			if ((unsigned char) s[i] <= 127) {
+				if (isprint(s[i])) {
+					if ((s[i] == '"') || (s[i] == '\\')) {
+						fputc('\\', file);
+					}
+					fputc(s[i], file);
+				} else {
+					fprintf(file, "\" \"\\x%02x\" \"", (unsigned char) s[i]);
 				}
-				fputc(s[i], file);
 			} else {
-				fprintf(file, "\" \"\\x%02x\" \"", (unsigned char) s[i]);
+				fputc(s[i], file);
 			}
-		} else {
-			fputc(s[i], file);
+			i++;
 		}
-		i++;
 	}
 	fputc('"', file);
 }
@@ -274,6 +322,9 @@ static void GenerateChar(char ch, FILE *file)
 
 void Generate_ConstDeclaration(Trees_Node ident)
 {
+	assert(initialized);
+
+	GenerateInternalDeclarations(CONST_SECTION);
 	if (Trees_Exported(ident)) {
 		/*add constant declaration to header file to provide access to it from hand-written C file*/
 		fprintf(hFile, "\n#define ");
@@ -439,12 +490,58 @@ static void GenerateTypeSpecifier(Trees_Node ident, Trees_Node type, FILE *file,
 }
 
 
+static Trees_Node EntireVar(Trees_Node var)
+{
+	assert(Trees_Symbol(var) == TREES_DESIGNATOR);
+	return Trees_Left(var);
+}
+
+
+static void GenerateArrayLength(Trees_Node arrayType, Trees_Node varIdent, int dim, FILE *file)
+{
+	assert(Types_IsArray(arrayType));
+	assert(Trees_Symbol(varIdent) == IDENT);
+	assert(dim >= 0);
+
+	if (Types_IsOpenArray(arrayType)) {
+		Generate(varIdent, file, 0);
+		fprintf(file, "len");
+		if (dim > 0) {
+			fprintf(file, "%d", dim);
+		}
+	} else {
+		fprintf(file, "%" OBNC_INT_MOD "d", Trees_Integer(Types_ArrayLength(arrayType)));
+	}
+}
+
+
+static void GenerateFlattenedArrayLength(Trees_Node arrayType, Trees_Node varIdent, int dim, FILE *file)
+{
+	Trees_Node type;
+	int i;
+
+	assert(Types_IsArray(arrayType));
+	assert(Trees_Symbol(varIdent) == IDENT);
+	assert(dim >= 0);
+
+	type = arrayType;
+	i = 0;
+	while (Types_IsArray(type)) {
+		if (i > 0) {
+			fprintf(file, " * ");
+		}
+		GenerateArrayLength(type, varIdent, dim + i, file);
+		type = Types_ElementType(type);
+		i++;
+	}
+}
+
+
 static void GenerateFormalParameterList(Trees_Node paramList, FILE *file);
 
 static void GenerateDeclarator(Trees_Node ident, FILE *file)
 {
 	Trees_Node type, firstNonArrayType, resultType;
-	int dim;
 
 	type = Trees_Type(ident);
 	firstNonArrayType = type;
@@ -465,20 +562,12 @@ static void GenerateDeclarator(Trees_Node ident, FILE *file)
 	if (Trees_Symbol(type) == ARRAY) {
 		/*NOTE: Since multi-dimensional open array parameters must be generated as one-dimensional arrays, we must also generate (non-open) multi-dimensional arrays as one-dimensional arrays to enable parameter substitution with correct type.*/
 		fprintf(file, "[");
-		dim = -1;
-		do {
-			dim++;
-			if (dim > 0) {
-				fprintf(file, " * ");
-			}
-			Generate(Types_ArrayLength(type), file, 0);
-			type = Types_ElementType(type);
-		} while (Types_IsArray(type));
+		GenerateFlattenedArrayLength(type, ident, 0, file);
 		fprintf(file, "]");
 	}
 	if (Trees_Symbol(firstNonArrayType) == PROCEDURE) {
 		fprintf(file, ")(");
-		if (Types_Parameters(type) != NULL) {
+		if (Types_Parameters(firstNonArrayType) != NULL) {
 			GenerateFormalParameterList(Types_Parameters(firstNonArrayType), file);
 		} else {
 			fprintf(file, "void");
@@ -672,6 +761,9 @@ void Generate_TypeDeclaration(Trees_Node ident)
 	Trees_Node type, declaration, typeDescIdent;
 	int modulePrefixNeeded;
 
+	assert(initialized);
+	GenerateInternalDeclarations(TYPE_SECTION);
+
 	type = Trees_Type(ident);
 	modulePrefixNeeded = ModulePrefixNeeded(ident);
 
@@ -745,6 +837,9 @@ void Generate_VariableDeclaration(Trees_Node identList)
 	int allExported;
 	Trees_Node ident, type, declaration, newTypeIdent, newTypeDecl, p, exportedIdents, nonExportedIdents, exportedDecl, nonExportedDecl;
 	int indent;
+
+	assert(initialized);
+	GenerateInternalDeclarations(VAR_SECTION);
 
 	ident = Trees_Left(identList);
 	indent = Trees_Local(ident)? 1: 0;
@@ -834,13 +929,6 @@ void Generate_VariableDeclaration(Trees_Node identList)
 
 
 /*EXPRESSION GENERATORS*/
-
-static Trees_Node EntireVar(Trees_Node var)
-{
-	assert(Trees_Symbol(var) == TREES_DESIGNATOR);
-	return Trees_Left(var);
-}
-
 
 static Trees_Node NextSelector(Trees_Node var)
 {
@@ -988,23 +1076,6 @@ static void PrintCOperator(Trees_Node opNode, FILE *file)
 }
 
 
-static void GenerateArrayLength(Trees_Node var, Trees_Node arrayType, int dim, FILE *file)
-{
-	assert(Trees_Symbol(var) == TREES_DESIGNATOR);
-	assert(Types_IsArray(arrayType));
-
-	if (Types_IsOpenArray(arrayType)) {
-		Generate(EntireVar(var), file, 0);
-		fprintf(file, "len");
-		if (dim > 0) {
-			fprintf(file, "%d", dim);
-		}
-	} else {
-		fprintf(file, "%" OBNC_INT_MOD "d", Trees_Integer(Types_ArrayLength(arrayType)));
-	}
-}
-
-
 static int ArrayDimension(Trees_Node arrayVar)
 {
 	Trees_Node selector;
@@ -1095,7 +1166,7 @@ static void GenerateNonScalarOperation(Trees_Node opNode, FILE *file, int indent
 				if (Trees_Symbol(types[i]) == TREES_STRING_TYPE) {
 					fprintf(file, "%lu", (long unsigned int) strlen(Trees_String(operands[i])) + 1);
 				} else {
-					GenerateArrayLength(operands[i], types[i], ArrayDimension(operands[i]), file);
+					GenerateArrayLength(types[i], EntireVar(operands[i]), ArrayDimension(operands[i]), file);
 				}
 			}
 			fprintf(file, ") ");
@@ -1310,14 +1381,14 @@ static void GenerateArrayIndex(Trees_Node var, Trees_Node indexSelector, FILE *f
 		Generate(indexExp, file, 0);
 		if (trapNeeded) {
 			fprintf(file, ", ");
-			GenerateArrayLength(var, currArrayType, dim, file);
-			fprintf(file, ")");
+			GenerateArrayLength(currArrayType, EntireVar(var), dim, file);
+			fprintf(file, ", %d)", Trees_LineNumber(indexExp));
 		}
 		currArrayType1 = Types_ElementType(currArrayType);
 		dim1 = dim + 1;
 		while ((currArrayType1 != NULL) && Types_IsArray(currArrayType1)) {
 			fprintf(file, " * ");
-			GenerateArrayLength(var, currArrayType1, dim1, file);
+			GenerateArrayLength(currArrayType1, EntireVar(var), dim1, file);
 			currArrayType1 = Types_ElementType(currArrayType1);
 			dim1++;
 		}
@@ -1399,7 +1470,7 @@ static void GenerateDesignatorRec(Trees_Node des, Trees_Node selector, FILE *fil
 			case '^':
 				fprintf(file, "(*OBNC_PT(");
 				GenerateDesignatorRec(des, PrevSelector(des, selector), file);
-				fprintf(file, "))");
+				fprintf(file, ", %d))", Trees_LineNumber(des));
 				break;
 			case '(':
 				typeIdent = Trees_Left(selector);
@@ -1432,7 +1503,7 @@ static void GenerateDesignatorRec(Trees_Node des, Trees_Node selector, FILE *fil
 				}
 				fprintf(file, ", &");
 				Generate(TypeDescIdent(typeIdent), file, 0);
-				fprintf(file, "id, %d)))", Types_ExtensionLevel(typeIdent));
+				fprintf(file, "id, %d, %d)))", Types_ExtensionLevel(typeIdent), Trees_LineNumber(des));
 				break;
 			default:
 				assert(0);
@@ -1504,11 +1575,11 @@ static void GenerateArrayAssignment(Trees_Node source, Trees_Node target, FILE *
 		if (Trees_Symbol(source) == STRING) {
 			fprintf(file, "%lu", (long unsigned int) strlen(Trees_String(source)) + 1);
 		} else {
-			GenerateArrayLength(source, sourceType, ArrayDimension(source), file);
+			GenerateArrayLength(sourceType, EntireVar(source), ArrayDimension(source), file);
 		}
 		fprintf(file, ", ");
-		GenerateArrayLength(target, targetType, ArrayDimension(target), file);
-		fprintf(file, ");\n");
+		GenerateArrayLength(targetType, EntireVar(target), ArrayDimension(target), file);
+		fprintf(file, ", %d);\n", Trees_LineNumber(target));
 	}
 	Indent(file, indent);
 	fprintf(file, "OBNC_COPY_ARRAY(");
@@ -1525,7 +1596,7 @@ static void GenerateArrayAssignment(Trees_Node source, Trees_Node target, FILE *
 	if (Trees_Symbol(source) == STRING) {
 		fprintf(file, "%lu", (long unsigned int) strlen(Trees_String(source)) + 1);
 	} else {
-		GenerateArrayLength(source, sourceType, ArrayDimension(source), file);
+		GenerateFlattenedArrayLength(sourceType, EntireVar(source), ArrayDimension(source), file);
 	}
 	fprintf(file, ");\n");
 }
@@ -1544,7 +1615,7 @@ static void GenerateRecordAssignment(Trees_Node source, Trees_Node target, FILE 
 		GenerateTypeDescExp(source, file, 0);
 		fprintf(file, ", ");
 		GenerateTypeDescExp(target, file, 0);
-		fprintf(file, ");\n");
+		fprintf(file, ", %d);\n", Trees_LineNumber(target));
 	}
 	if (Types_Same(sourceType, targetType) && ! IsVarParam(target)) {
 		GenerateDesignator(target, file);
@@ -1626,7 +1697,7 @@ static void GenerateProcedureCall(Trees_Node call, FILE *file, int indent)
 	if (isProcVar) {
 		fprintf(file, "OBNC_PCT(");
 		Generate(designator, file, 0);
-		fprintf(file, ")");
+		fprintf(file, ", %d)", Trees_LineNumber(designator));
 	} else {
 		Generate(designator, file, 0);
 	}
@@ -1668,7 +1739,7 @@ static void GenerateProcedureCall(Trees_Node call, FILE *file, int indent)
 				dim = ArrayDimension(exp);
 				do {
 					fprintf(file, ", ");
-					GenerateArrayLength(exp, componentExpType, dim, file);
+					GenerateArrayLength(componentExpType, EntireVar(exp), dim, file);
 					componentFPType = Types_ElementType(componentFPType);
 					componentExpType = Types_ElementType(componentExpType);
 					dim++;
@@ -1695,27 +1766,20 @@ static void GenerateProcedureCall(Trees_Node call, FILE *file, int indent)
 
 static void GenerateAssert(Trees_Node node, FILE *file, int indent)
 {
-	Trees_Node exp, filename, line;
+	Trees_Node exp;
 
 	exp = Trees_Left(node);
-	filename = Trees_Left(Trees_Right(node));
-	line = Trees_Right(Trees_Right(node));
-
 	Indent(file, indent);
 	fprintf(file, "OBNC_ASSERT(");
 	Generate(exp, file, 0);
-	fprintf(file, ", ");
-	Generate(filename, file, 0);
-	fprintf(file, ", ");
-	Generate(line, file, 0);
-	fprintf(file, ");\n");
+	fprintf(file, ", \"%s\", %d);\n", Paths_Basename(inputFilename), Trees_LineNumber(exp));
 }
 
 
 static void GenerateIntegralCaseStatement(Trees_Node caseStmtNode, FILE *file, int indent)
 {
 	Trees_Node expNode, currCaseRepNode, currCaseNode, currCaseLabelListNode, currStmtSeqNode, currLabelRangeNode;
-	OBNC_LONGI int rangeMin, rangeMax, label;
+	OBNC_INTEGER rangeMin, rangeMax, label;
 
 	expNode = Trees_Left(caseStmtNode);
 
@@ -1773,7 +1837,7 @@ static void GenerateIntegralCaseStatement(Trees_Node caseStmtNode, FILE *file, i
 	Indent(file, indent + 1);
 	fprintf(file, "default:\n");
 	Indent(file, indent + 2);
-	fprintf(file, "OBNC_CT;\n");
+	fprintf(file, "OBNC_CT(%d);\n", Trees_LineNumber(expNode));
 	Indent(file, indent);
 	fprintf(file, "}\n");
 }
@@ -1875,7 +1939,7 @@ static void GenerateWhileStatement(Trees_Node whileNode, FILE *file, int indent)
 static void GenerateForStatement(Trees_Node forNode, FILE *file, int indent)
 {
 	Trees_Node initNode, controlVarNode, toNode, limit, byNode, statementSeq;
-	OBNC_LONGI int inc;
+	OBNC_INTEGER inc;
 
 	initNode = Trees_Left(forNode);
 	controlVarNode = Trees_Left(initNode);
@@ -2089,7 +2153,7 @@ static void GenerateOpenArrayParameter(Trees_Node param, FILE *file)
 	Generate(param, file, 0);
 	fprintf(file, "[]");
 	for (i = 0; i < ndims; i++) {
-		fprintf(file, ", OBNC_LONGI int ");
+		fprintf(file, ", OBNC_INTEGER ");
 		Generate(param, file, 0);
 		fprintf(file, "len");
 		if (i > 0) {
@@ -2116,7 +2180,11 @@ static void GenerateFormalParameter(Trees_Node param, FILE *file)
 		if (Types_IsOpenArray(type)) {
 			GenerateOpenArrayParameter(param, file);
 		} else {
-			Generate(type, file, 0);
+			if (Types_IsRecord(type)) {
+				Generate(Types_UnaliasedIdent(type), file, 0);
+			} else {
+				Generate(type, file, 0);
+			}
 			fprintf(file, " ");
 			if (Types_IsRecord(type) || (type == declaredTypeIdent)) {
 				fprintf(file, "*");
@@ -2171,6 +2239,9 @@ void Generate_ProcedureHeading(Trees_Node procIdent)
 {
 	Trees_Node procType, resultType, paramList;
 
+	assert(initialized);
+	GenerateInternalDeclarations(PROCEDURE_SECTION);
+
 	PushProcedureDeclaration(procIdent);
 	procedureDeclStart = ftell(cFile);
 	fprintf(cFile, "\n");
@@ -2216,6 +2287,7 @@ void Generate_ProcedureHeading(Trees_Node procIdent)
 
 void Generate_ProcedureStatements(Trees_Node stmtSeq)
 {
+	assert(initialized);
 	fprintf(cFile, "\n");
 	Generate(stmtSeq, cFile, 1);
 }
@@ -2225,6 +2297,7 @@ void Generate_ReturnClause(Trees_Node exp)
 {
 	Trees_Node resultType;
 
+	assert(initialized);
 	assert(procedureDeclStack != NULL);
 
 	resultType = Types_ResultType(Trees_Type(procedureDeclStack->procIdent));
@@ -2243,6 +2316,7 @@ void Generate_ReturnClause(Trees_Node exp)
 
 void Generate_ProcedureEnd(Trees_Node procIdent)
 {
+	assert(initialized);
 	(void) procIdent; /*prevent "unused" warning*/
 	fprintf(cFile, "}\n\n");
 	PopProcedureDeclaration();
@@ -2306,9 +2380,12 @@ static void DeleteTemporaryFiles(void)
 }
 
 
-void Generate_Open(const char moduleName[], int isEntryPoint)
+void Generate_Open(const char inputFile[], int isEntryPoint)
 {
-	inputModuleName = moduleName;
+	assert(initialized);
+
+	inputFilename = inputFile;
+	inputModuleName = Paths_SansSuffix(Paths_Basename(inputFile));
 	isEntryPointModule = isEntryPoint;
 
 	/*initialize header comment*/
@@ -2337,8 +2414,9 @@ void Generate_Open(const char moduleName[], int isEntryPoint)
 
 void Generate_ModuleHeading(void)
 {
+	assert(initialized);
+
 	fprintf(cFile, "%s\n\n", headerComment);
-	fprintf(cFile, "#include <obnc/OBNC.h>\n");
 	if (! isEntryPointModule) {
 		fprintf(cFile, "#include \"%s.h\"\n", inputModuleName);
 	}
@@ -2346,7 +2424,6 @@ void Generate_ModuleHeading(void)
 	fprintf(hFile, "%s\n\n", headerComment);
 	fprintf(hFile, "#ifndef %s_h\n", inputModuleName);
 	fprintf(hFile, "#define %s_h\n\n", inputModuleName);
-	fprintf(hFile, "#include <obnc/OBNC.h>\n");
 }
 
 
@@ -2394,6 +2471,7 @@ void Generate_ImportList(Trees_Node list)
 	Trees_Node moduleAndDirPath, module, dirPathNode;
 	const char *dirPath, *parentDirPrefix, *relativePath;
 
+	assert(initialized);
 	importList = list;
 
 	while (list != NULL) {
@@ -2431,11 +2509,41 @@ void Generate_ImportList(Trees_Node list)
 }
 
 
+static void SearchAddressOperations(Trees_Node node)
+{
+	if (node != NULL) {
+		switch (Trees_Symbol(node)) {
+			case TREES_ADR_PROC:
+			case TREES_BIT_PROC:
+			case TREES_COPY_PROC:
+			case TREES_GET_PROC:
+			case TREES_PUT_PROC:
+				addressOperationUsed = 1;
+				break;
+			default:
+				SearchAddressOperations(Trees_Left(node));
+				SearchAddressOperations(Trees_Right(node));
+		}
+	}
+}
+
+
+static void GenerateIntegerSizeAssertion(int indent)
+{
+	Indent(cFile, indent);
+	fprintf(cFile, "OBNC_C_ASSERT(sizeof (OBNC_INTEGER) == sizeof (void *)); /*SYSTEM procedure requirement*/\n");
+}
+
+
 void Generate_ModuleStatements(Trees_Node stmtSeq)
 {
 	const char *initFuncName;
 	Trees_Node initFuncIdent;
 
+	assert(initialized);
+
+	GenerateInternalDeclarations(MODULE_SECTION);
+	SearchAddressOperations(stmtSeq);
 	if (isEntryPointModule) {
 		fprintf(cFile, "\n");
 		fprintf(cFile, "#if OBNC_CONFIG_TARGET_EMB\n");
@@ -2449,6 +2557,9 @@ void Generate_ModuleStatements(Trees_Node stmtSeq)
 		Indent(cFile, 1);
 		fprintf(cFile, "OBNC_Init(argc, argv);\n");
 		fprintf(cFile, "#endif\n");
+		if (addressOperationUsed) {
+			GenerateIntegerSizeAssertion(1);
+		}
 		if (importList != NULL) {
 			GenerateInitCalls(1);
 		}
@@ -2465,6 +2576,9 @@ void Generate_ModuleStatements(Trees_Node stmtSeq)
 			fprintf(cFile, "static int initialized = 0;\n\n");
 			Indent(cFile, 1);
 			fprintf(cFile, "if (! initialized) {\n");
+			if (addressOperationUsed) {
+				GenerateIntegerSizeAssertion(2);
+			}
 			GenerateInitCalls(2);
 			Generate(stmtSeq, cFile, 2);
 			Indent(cFile, 2);
@@ -2485,6 +2599,7 @@ void Generate_ModuleStatements(Trees_Node stmtSeq)
 
 void Generate_ModuleEnd(void)
 {
+	assert(initialized);
 	fprintf(hFile, "\n#endif\n");
 }
 
@@ -2492,6 +2607,8 @@ void Generate_ModuleEnd(void)
 void Generate_Close(void)
 {
 	const char *cFilepath, *hFilepath;
+
+	assert(initialized);
 
 	/*close temporary files*/
 	Files_Close(&cFile);
@@ -2600,10 +2717,10 @@ static void Generate(Trees_Node node, FILE *file, int indent)
 				break;
 			case INTEGER:
 				{
-					OBNC_LONGI int i = Trees_Integer(node);
+					OBNC_INTEGER i = Trees_Integer(node);
 
 					if (i == OBNC_INT_MIN) {
-						fprintf(file, "(%" OBNC_INT_MOD "d - 1)", i + 1);
+						fprintf(file, "(%" OBNC_INT_MOD "d - 1)", (OBNC_INTEGER) (i + 1));
 					} else {
 						fprintf(file, "%" OBNC_INT_MOD "d", i);
 					}
@@ -2658,6 +2775,7 @@ static void Generate(Trees_Node node, FILE *file, int indent)
 				fprintf(file, "OBNC_ADR(");
 				Generate(Trees_Left(node), file, 0);
 				fprintf(file, ")");
+				addressOperationUsed = 1;
 				break;
 			case TREES_ASR_PROC:
 				Indent(file, indent);
@@ -2672,6 +2790,7 @@ static void Generate(Trees_Node node, FILE *file, int indent)
 				fprintf(file, "OBNC_BIT(");
 				Generate(Trees_Left(node), file, 0);
 				fprintf(file, ")");
+				addressOperationUsed = 1;
 				break;
 			case TREES_BOOLEAN_TYPE:
 				fprintf(file, "int");
@@ -2695,6 +2814,7 @@ static void Generate(Trees_Node node, FILE *file, int indent)
 				fprintf(file, "OBNC_COPY(");
 				Generate(Trees_Left(node), file, 0);
 				fprintf(file, ");\n");
+				addressOperationUsed = 1;
 				break;
 			case TREES_DEC_PROC:
 				{
@@ -2746,6 +2866,7 @@ static void Generate(Trees_Node node, FILE *file, int indent)
 					fprintf(file, ", ");
 					Generate(Trees_Type(Trees_Left(Trees_Right(params))), file, indent);
 					fprintf(file, ");\n");
+					addressOperationUsed = 1;
 				}
 				break;
 			case TREES_INC_PROC:
@@ -2769,7 +2890,7 @@ static void Generate(Trees_Node node, FILE *file, int indent)
 				fprintf(file, ");\n");
 				break;
 			case TREES_INTEGER_TYPE:
-				fprintf(file, "OBNC_LONGI int");
+				fprintf(file, "OBNC_INTEGER");
 				break;
 			case TREES_LEN_PROC:
 				{
@@ -2777,7 +2898,7 @@ static void Generate(Trees_Node node, FILE *file, int indent)
 
 					params = Trees_Left(node);
 					var = Trees_Left(params);
-					GenerateArrayLength(var, Trees_Type(var), ArrayDimension(var), file);
+					GenerateArrayLength(Trees_Type(var), EntireVar(var), ArrayDimension(var), file);
 				}
 				break;
 			case TREES_LSL_PROC:
@@ -2841,13 +2962,14 @@ static void Generate(Trees_Node node, FILE *file, int indent)
 						Generate(Trees_Type(secondParam), file, 0);
 					}
 					fprintf(file, ");\n");
+					addressOperationUsed = 1;
 				}
 				break;
 			case TREES_RANGE_SET:
 				GenerateRangeSet(node, file);
 				break;
 			case TREES_REAL_TYPE:
-				fprintf(file, "OBNC_LONGR double");
+				fprintf(file, "OBNC_REAL");
 				break;
 			case TREES_ROR_PROC:
 				if (ContainsProcedureCall(Trees_Left(node)) || ContainsProcedureCall(Trees_Right(node))) {
@@ -2862,7 +2984,7 @@ static void Generate(Trees_Node node, FILE *file, int indent)
 				fprintf(file, "0x%" OBNC_INT_MOD "Xu", Trees_Set(node));
 				break;
 			case TREES_SET_TYPE:
-				fprintf(file, "OBNC_LONGI unsigned int");
+				fprintf(file, "unsigned OBNC_INTEGER");
 				break;
 			case TREES_SINGLE_ELEMENT_SET:
 				GenerateSingleElementSet(node, file);

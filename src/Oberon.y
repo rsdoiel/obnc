@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -45,6 +45,8 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 #define PARAM_SUBST_CONTEXT 1
 #define PROC_RESULT_CONTEXT 2
 
+static int initialized = 0;
+
 static const char *inputFilename;
 static int parseMode;
 static char *inputModuleName;
@@ -55,6 +57,9 @@ static Trees_Node recordDeclarationStack;
 static Trees_Node caseExpressionStack;
 static Trees_Node caseLabelsStack;
 static Trees_Node procedureDeclarationStack;
+
+void yyerror(const char msg[]);
+static void CheckUnusedIdentifiers(void);
 
 /*constant predicate functions*/
 
@@ -101,8 +106,8 @@ static void ExportSymbolTable(const char symfilePath[]);
 
 %union {
 	const char *ident;
-	OBNC_LONGI int integer;
-	OBNC_LONGR double real;
+	OBNC_INTEGER integer;
+	OBNC_REAL real;
 	const char *string;
 	Trees_Node node;
 }
@@ -235,7 +240,7 @@ identdef:
 				Trees_SetLocal($$);
 			}
 		} else {
-			yyerror("error: redeclaration of identifier: %s", $1);
+			Oberon_PrintError("error: redeclaration of identifier: %s", $1);
 			YYABORT;
 		}
 	}
@@ -279,7 +284,7 @@ ConstDeclaration:
 			Table_Put($1);
 			Generate_ConstDeclaration($1);
 		} else {
-			yyerror("error: cannot export local constant: %s", Trees_Name($1));
+			Oberon_PrintError("error: cannot export local constant: %s", Trees_Name($1));
 			YYABORT;
 		}
 	}
@@ -291,7 +296,7 @@ ConstExpression:
 		if (IsConstExpression($1)) {
 			$$ = $1;
 		} else {
-			yyerror("error: constant expression expected");
+			Oberon_PrintError("error: constant expression expected");
 			YYABORT;
 		}
 	}
@@ -313,11 +318,11 @@ TypeDeclaration:
 				currentTypeIdentdef = NULL;
 				Generate_TypeDeclaration($1);
 			} else {
-				yyerror("error: cannot export local type: %s", Trees_Name($1));
+				Oberon_PrintError("error: cannot export local type: %s", Trees_Name($1));
 				YYABORT;
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name($2));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name($2));
 			YYABORT;
 		}
 	}
@@ -355,7 +360,7 @@ ArrayType:
 				reversedLengths = Trees_Right(reversedLengths);
 			} while (reversedLengths != NULL);
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name($2));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name($2));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -388,15 +393,15 @@ length:
 		if (Types_IsInteger(Trees_Type($1))) {
 			if (IsInteger($1)) {
 				if (Trees_Integer($1) <= 0) {
-					yyerror("error: positive length expected: %" OBNC_INT_MOD "d", Trees_Integer($1));
+					Oberon_PrintError("error: positive length expected: %" OBNC_INT_MOD "d", Trees_Integer($1));
 					YYABORT;
 				}
 			} else {
-				yyerror("error: fully evaluated constant expression expected as increment");
+				Oberon_PrintError("error: fully evaluated constant expression expected as increment");
 				YYABORT;
 			}
 		} else {
-			yyerror("error: integer length expected");
+			Oberon_PrintError("error: integer length expected");
 			YYABORT;
 		}
 	}
@@ -445,24 +450,29 @@ BaseType:
 			if (Trees_Kind(symbol) == TREES_TYPE_KIND) {
 				if (symbol != currentTypeIdentdef) {
 					switch (Trees_Symbol(Types_Structure(symbol))) {
-						case RECORD:
 						case POINTER:
+							if (Types_Same(Types_PointerBaseType(symbol), currentTypeIdentdef)) {
+								Oberon_PrintError("error: self-referring base type: %s", name);
+								YYABORT;
+							}
+							/*fall through*/
+						case RECORD:
 							$$ = symbol;
 							break;
 						default:
-							yyerror("error: record or pointer base type expected: %s", name);
+							Oberon_PrintError("error: record or pointer base type expected: %s", name);
 							YYABORT;
 					}
 				} else {
-					yyerror("error: invalid base type: %s", name);
+					Oberon_PrintError("error: self-referring base type: %s", name);
 					YYABORT;
 				}
 			} else {
-				yyerror("error: type name expected: %s", name);
+				Oberon_PrintError("error: type name expected: %s", name);
 				YYABORT;
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", name);
+			Oberon_PrintError("error: undeclared identifier: %s", name);
 			YYABORT;
 		}
 	}
@@ -499,7 +509,7 @@ FieldListSequence:
 				while (currSeqList != NULL) {
 					seqIdentName = Trees_Name(Trees_Left(currSeqList));
 					if (strcmp(listIdentName, seqIdentName) == 0) {
-						yyerror("error: redeclaration of field: %s", listIdentName);
+						Oberon_PrintError("error: redeclaration of field: %s", listIdentName);
 						YYABORT;
 					}
 					currSeqList = Trees_Right(currSeqList);
@@ -539,11 +549,11 @@ FieldList:
 							Trees_SetKind(TREES_FIELD_KIND, ident);
 							Trees_SetType(type, ident);
 						} else {
-							yyerror("error: redeclaration of field: %s defined in %s", Trees_Name(ident), Trees_Name(baseType));
+							Oberon_PrintError("error: redeclaration of field: %s defined in %s", Trees_Name(ident), Trees_Name(baseType));
 							YYABORT;
 						}
 					} else {
-						yyerror("error: redeclaration of field: %s", Trees_Name(ident));
+						Oberon_PrintError("error: redeclaration of field: %s", Trees_Name(ident));
 						YYABORT;
 					}
 					tail = Trees_Right(tail);
@@ -551,11 +561,11 @@ FieldList:
 
 				$$ = $1;
 			} else {
-				yyerror("error: recursive field type must be a pointer: %s", Trees_Name($3));
+				Oberon_PrintError("error: recursive field type must be a pointer: %s", Trees_Name($3));
 				YYABORT;
 			}
 		} else {
-			yyerror("error: undeclared type: %s", Trees_Name($3));
+			Oberon_PrintError("error: undeclared type: %s", Trees_Name($3));
 			YYABORT;
 		}
 	}
@@ -589,7 +599,7 @@ PointerType:
 				if (Types_IsRecord(declaredBaseType)) {
 					$$ = Types_NewPointer(declaredBaseType);
 				} else {
-					yyerror("error: record expected as pointer base type: %s", baseTypeName);
+					Oberon_PrintError("error: record expected as pointer base type: %s", baseTypeName);
 					YYABORT;
 				}
 			} else if (currentTypeIdentdef != NULL) {
@@ -598,13 +608,13 @@ PointerType:
 				$$ = Types_NewPointer($2);
 				unresolvedPointerTypes = Trees_NewNode(TREES_NOSYM, $$, unresolvedPointerTypes);
 			} else {
-				yyerror("error: undeclared type: %s", baseTypeName);
+				Oberon_PrintError("error: undeclared type: %s", baseTypeName);
 				YYABORT;
 			}
 		} else if(Trees_Symbol($2) == RECORD) {
 			$$ = Types_NewPointer($2);
 		} else {
-			yyerror("error: record expected as pointer base type");
+			Oberon_PrintError("error: record expected as pointer base type");
 			YYABORT;
 		}
 	}
@@ -661,11 +671,11 @@ VariableDeclaration:
 						Trees_SetType(type, ident);
 						Table_Put(ident);
 					} else {
-						yyerror("error: redeclaration of identifier with the same name: %s", Trees_Name(ident));
+						Oberon_PrintError("error: redeclaration of identifier with the same name: %s", Trees_Name(ident));
 						YYABORT;
 					}
 				} else {
-					yyerror("error: cannot export local variable: %s", Trees_Name(ident));
+					Oberon_PrintError("error: cannot export local variable: %s", Trees_Name(ident));
 					YYABORT;
 				}
 				identList = Trees_Right(identList);
@@ -673,7 +683,7 @@ VariableDeclaration:
 
 			Generate_VariableDeclaration($1);
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name($3));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name($3));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -701,11 +711,11 @@ expression:
 					expB = BaseIdent($3);
 					typeB = BaseIdent($3);
 				} else {
-					yyerror("error: variable parameter expected as first operand of IS");
+					Oberon_PrintError("error: variable parameter expected as first operand of IS");
 					YYABORT;
 				}
 			} else {
-				yyerror("error: identifier expected as first operand of IS");
+				Oberon_PrintError("error: identifier expected as first operand of IS");
 				YYABORT;
 			}
 		} else {
@@ -723,7 +733,7 @@ expression:
 				Trees_SetType(Trees_NewLeaf(TREES_BOOLEAN_TYPE), $$);
 			}
 		} else {
-			yyerror("error: incompatible types in relation \"%s\": %s, %s",
+			Oberon_PrintError("error: incompatible types in relation \"%s\": %s, %s",
 				OperatorString(op), TypeString(typeA), TypeString(typeB));
 			YYABORT;
 		}
@@ -783,7 +793,7 @@ SimpleExpression:
 					}
 				}
 			} else {
-				yyerror("error: incompatible type in unary operation \"%s\": %s", OperatorString(op), TypeString(Trees_Type($2)));
+				Oberon_PrintError("error: incompatible type in unary operation \"%s\": %s", OperatorString(op), TypeString(Trees_Type($2)));
 				YYABORT;
 			}
 		}
@@ -808,7 +818,7 @@ SimpleExpression:
 				}
 			}
 		} else {
-			yyerror("error: incompatible types in operation \"%s\": %s, %s",
+			Oberon_PrintError("error: incompatible types in operation \"%s\": %s, %s",
 				OperatorString(op), TypeString(Trees_Type($1)), TypeString(Trees_Type($3)));
 			YYABORT;
 		}
@@ -868,7 +878,7 @@ term:
 				}
 			}
 		} else {
-			yyerror("error: incompatible types in operation \"%s\": %s, %s",
+			Oberon_PrintError("error: incompatible types in operation \"%s\": %s, %s",
 				OperatorString(op), TypeString(Trees_Type($1)), TypeString(Trees_Type($3)));
 			YYABORT;
 		}
@@ -962,7 +972,7 @@ factor:
 				Trees_SetType(Trees_NewLeaf(TREES_BOOLEAN_TYPE), $$);
 			}
 		} else {
-			yyerror("error: incompatible type in operation \"~\": %s", TypeString(Trees_Type($2)));
+			Oberon_PrintError("error: incompatible type in operation \"~\": %s", TypeString(Trees_Type($2)));
 			YYABORT;
 		}
 		assert($$ != NULL);
@@ -1036,7 +1046,7 @@ selector:
 			if (Types_IsInteger(Trees_Type(exp))) {
 				$$ = Trees_NewNode('[', Trees_Left(curr), $$);
 			} else {
-				yyerror("error: integer array index expected");
+				Oberon_PrintError("error: integer array index expected");
 				YYABORT;
 			}
 			curr = Trees_Right(curr);
@@ -1086,7 +1096,7 @@ ElementRep:
 element:
 	expression
 	{
-		OBNC_LONGI int i;
+		OBNC_INTEGER i;
 		Trees_Node type;
 
 		CheckIsValueExpression($1);
@@ -1100,7 +1110,7 @@ element:
 			$$ = Trees_NewNode(TREES_SINGLE_ELEMENT_SET, $1, NULL);
 			Trees_SetType(Trees_NewLeaf(TREES_SET_TYPE), $$);
 		} else {
-			yyerror("error: element must have integer type");
+			Oberon_PrintError("error: element must have integer type");
 			YYABORT;
 		}
 	}
@@ -1121,7 +1131,7 @@ element:
 			$$ = Trees_NewNode(TREES_RANGE_SET, $1, $3);
 			Trees_SetType(Trees_NewLeaf(TREES_SET_TYPE), $$);
 		} else {
-			yyerror("error: element must have integer type");
+			Oberon_PrintError("error: element must have integer type");
 			YYABORT;
 		}
 	}
@@ -1182,18 +1192,18 @@ assignment:
 								exp = Trees_NewChar(Trees_String(exp)[0]);
 							}
 						} else {
-							yyerror("error: assignment to read-only variable");
+							Oberon_PrintError("error: assignment to read-only variable");
 							YYABORT;
 						}
 						break;
 					default:
-						yyerror("error: assignment to non-variable");
+						Oberon_PrintError("error: assignment to non-variable");
 						YYABORT;
 				}
 				$$ = Trees_NewNode(BECOMES, designator, exp);
 				break;
 			case TREES_PROCEDURE_CALL:
-				yyerror("error: unexpected procedure call in assignment target");
+				Oberon_PrintError("error: unexpected procedure call in assignment target");
 				YYABORT;
 				break;
 			default:
@@ -1278,7 +1288,7 @@ guard:
 		if (Types_IsBoolean(Trees_Type($1))) {
 			$$ = $1;
 		} else {
-			yyerror("error: boolean expression expected");
+			Oberon_PrintError("error: boolean expression expected");
 			YYABORT;
 		}
 	}
@@ -1343,11 +1353,11 @@ CaseExpression:
 					if (! Types_IsRecord(typeStruct) || (Trees_Kind(caseVariable) == TREES_VAR_PARAM_KIND)) {
 						$$ = $1;
 					} else {
-						yyerror("error: record CASE expression must be a variable parameter");
+						Oberon_PrintError("error: record CASE expression must be a variable parameter");
 						YYABORT;
 					}
 				} else {
-					yyerror("error: non-integral CASE expression must be a variable");
+					Oberon_PrintError("error: non-integral CASE expression must be a variable");
 					YYABORT;
 				}
 				/*fall through*/
@@ -1359,7 +1369,7 @@ CaseExpression:
 				$$ = $1;
 				break;
 			default:
-				yyerror("error: invalid type of CASE expression");
+				Oberon_PrintError("error: invalid type of CASE expression");
 				YYABORT;
 		}
 	}
@@ -1414,7 +1424,7 @@ CaseLabelList:
 				$$ = Trees_NewNode(TREES_CASE_LABEL_LIST, $3, $1);
 				break;
 			default:
-				yyerror("error: unexpected list of type name case labels");
+				Oberon_PrintError("error: unexpected list of type name case labels");
 				YYABORT;
 		}
 	}
@@ -1434,7 +1444,7 @@ LabelRange:
 	{
 		const int rangeLenMax = 255;
 		int leftSym, rightSym;
-		OBNC_LONGI int rangeMin, rangeMax;
+		OBNC_INTEGER rangeMin, rangeMax;
 
 		leftSym = Trees_Symbol($1);
 		rightSym = Trees_Symbol($3);
@@ -1445,26 +1455,26 @@ LabelRange:
 					rangeMax = Trees_Integer($3);
 					if (rangeMin <= rangeMax) {
 						if (rangeMax - rangeMin > rangeLenMax) {
-							yyerror("warning: maximum range length of %d exceeded", rangeLenMax);
+							Oberon_PrintError("warning: maximum range length of %d exceeded", rangeLenMax);
 							YYABORT;
 						}
 					} else {
-						yyerror("error: left integer must be less than right integer in case range");
+						Oberon_PrintError("error: left integer must be less than right integer in case range");
 						YYABORT;
 					}
 					break;
 				case TREES_CHAR_CONSTANT:
 					if (Trees_Char($1) >= Trees_Char($3)) {
-						yyerror("error: left string must be less than right string in case range");
+						Oberon_PrintError("error: left string must be less than right string in case range");
 						YYABORT;
 					}
 					break;
 				default:
-					yyerror("error: case label ranges must contain integers or single-character strings");
+					Oberon_PrintError("error: case label ranges must contain integers or single-character strings");
 					YYABORT;
 			}
 		} else {
-			yyerror("error: case labels in a range must have the same type");
+			Oberon_PrintError("error: case labels in a range must have the same type");
 			YYABORT;
 		}
 		$$ = Trees_NewNode(DOTDOT, $1, $3);
@@ -1482,7 +1492,7 @@ label:
 		if (Types_IsInteger(Trees_Type(Trees_Left(caseExpressionStack)))) {
 			$$ = Trees_NewInteger($1);
 		} else {
-			yyerror("error: unexpected integer case label");
+			Oberon_PrintError("error: unexpected integer case label");
 			YYABORT;
 		}
 	}
@@ -1492,11 +1502,11 @@ label:
 			if (strlen($1) <= 1) {
 				$$ = Trees_NewChar($1[0]);
 			} else {
-				yyerror("error: single-character string expected: \"%s\"", $1);
+				Oberon_PrintError("error: single-character string expected: \"%s\"", $1);
 				YYABORT;
 			}
 		} else {
-			yyerror("error: unexpected string case label: \"%s\"", $1);
+			Oberon_PrintError("error: unexpected string case label: \"%s\"", $1);
 			YYABORT;
 		}
 	}
@@ -1515,15 +1525,15 @@ label:
 							if (Trees_Integer(constValue) >= 0) {
 								$$ = constValue;
 							} else {
-								yyerror("error: non-negative case label expected: %" OBNC_INT_MOD "d", Trees_Integer(constValue));
+								Oberon_PrintError("error: non-negative case label expected: %" OBNC_INT_MOD "d", Trees_Integer(constValue));
 								YYABORT;
 							}
 						} else {
-							yyerror("error: integer case label expected");
+							Oberon_PrintError("error: integer case label expected");
 							YYABORT;
 						}
 					} else {
-						yyerror("error: constant identifier expected: %s", Trees_Name($$));
+						Oberon_PrintError("error: constant identifier expected: %s", Trees_Name($$));
 						YYABORT;
 					}
 					break;
@@ -1534,15 +1544,15 @@ label:
 							if (Types_StringLength(Trees_Type(constValue)) <= 1) {
 								$$ = Trees_NewChar(Trees_String(constValue)[0]);
 							} else {
-								yyerror("error: single-character string expected: %s", Trees_String(constValue));
+								Oberon_PrintError("error: single-character string expected: %s", Trees_String(constValue));
 								YYABORT;
 							}
 						} else {
-							yyerror("error: character case label expected");
+							Oberon_PrintError("error: character case label expected");
 							YYABORT;
 						}
 					} else {
-						yyerror("error: constant identifier expected: %s", Trees_Name($$));
+						Oberon_PrintError("error: constant identifier expected: %s", Trees_Name($$));
 						YYABORT;
 					}
 					break;
@@ -1552,11 +1562,11 @@ label:
 							caseVariable = Trees_Left(caseExp);
 							Trees_SetType($$, caseVariable);
 						} else {
-							yyerror("error: case label is not an extension of %s: %s", Trees_Name(Trees_Type(caseExp)), Trees_Name($$));
+							Oberon_PrintError("error: case label is not an extension of %s: %s", Trees_Name(Trees_Type(caseExp)), Trees_Name($$));
 							YYABORT;
 						}
 					} else {
-						yyerror("error: record type case label expected");
+						Oberon_PrintError("error: record type case label expected");
 						YYABORT;
 					}
 					break;
@@ -1566,11 +1576,11 @@ label:
 							caseVariable = Trees_Left(caseExp);
 							Trees_SetType($$, caseVariable);
 						} else {
-							yyerror("error: case label is not an extension of %s: %s", Trees_Name(Trees_Type(caseExp)), Trees_Name($$));
+							Oberon_PrintError("error: case label is not an extension of %s: %s", Trees_Name(Trees_Type(caseExp)), Trees_Name($$));
 							YYABORT;
 						}
 					} else {
-						yyerror("error: pointer type case label expected");
+						Oberon_PrintError("error: pointer type case label expected");
 						YYABORT;
 					}
 					break;
@@ -1578,7 +1588,7 @@ label:
 					assert(0);
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name($1));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name($1));
 			YYABORT;
 		}
 	}
@@ -1610,7 +1620,7 @@ RepeatStatement:
 		if (Types_IsBoolean(Trees_Type($4))) {
 			$$ = Trees_NewNode(REPEAT, $2, $4);
 		} else {
-			yyerror("error: boolean expression expected");
+			Oberon_PrintError("error: boolean expression expected");
 			YYABORT;
 		}
 	}
@@ -1648,15 +1658,15 @@ ForInit:
 				if (Types_IsInteger(Trees_Type($3))) {
 					$$ = Trees_NewNode(BECOMES, ctrlVar, $3);
 				} else {
-					yyerror("error: integer expression expected as initial value");
+					Oberon_PrintError("error: integer expression expected as initial value");
 					YYABORT;
 				}
 			} else {
-				yyerror("error: integer control variable expected: %s", $1);
+				Oberon_PrintError("error: integer control variable expected: %s", $1);
 				YYABORT;
 			}
 		} else {
-			yyerror("error: undeclared control variable: %s", $1);
+			Oberon_PrintError("error: undeclared control variable: %s", $1);
 			YYABORT;
 		}
 	}
@@ -1666,7 +1676,7 @@ ForLimit:
 	{
 		CheckIsValueExpression($1);
 		if (! Types_IsInteger(Trees_Type($1))) {
-			yyerror("error: integer expression expected as upper limit");
+			Oberon_PrintError("error: integer expression expected as upper limit");
 			YYABORT;
 		}
 	}
@@ -1678,15 +1688,15 @@ ByOpt:
 		if (Types_IsInteger(Trees_Type($2))) {
 			if (IsInteger($2)) {
 				if (Trees_Integer($2) == 0) {
-					yyerror("warning: steps by zero leads to infinite loop");
+					Oberon_PrintError("warning: steps by zero leads to infinite loop");
 				}
 				$$ = $2;
 			} else {
-				yyerror("error: fully evaluated constant expression expected as increment");
+				Oberon_PrintError("error: fully evaluated constant expression expected as increment");
 				YYABORT;
 			}
 		} else {
-			yyerror("error: integer increment expected");
+			Oberon_PrintError("error: integer increment expected");
 			YYABORT;
 		}
 	}
@@ -1715,7 +1725,7 @@ ProcedureDeclaration:
 		if (strcmp(procName, $7) == 0) {
 			if (resultType == NULL) {
 				if (returnExp != NULL) {
-					yyerror("error: unexpected return expression");
+					Oberon_PrintError("error: unexpected return expression");
 					YYABORT;
 				}
 			} else {
@@ -1726,7 +1736,7 @@ ProcedureDeclaration:
 						returnExp = Trees_NewChar(Trees_String(returnExp)[0]);
 					}
 				} else {
-					yyerror("error: return expression expected");
+					Oberon_PrintError("error: return expression expected");
 					YYABORT;
 				}
 			}
@@ -1740,9 +1750,10 @@ ProcedureDeclaration:
 				procedureDeclarationStack = Trees_Right(procedureDeclarationStack);
 			}
 			Generate_ProcedureEnd(procIdent);
+			CheckUnusedIdentifiers();
 			Table_CloseScope();
 		} else {
-			yyerror("error: expected procedure name: %s", procName);
+			Oberon_PrintError("error: expected procedure name: %s", procName);
 			YYABORT;
 		}
 	}
@@ -1777,7 +1788,7 @@ ProcedureHeadingSansParam:
 			Table_Put($2);
 			Table_OpenScope();
 		} else {
-			yyerror("error: cannot export local procedure: %s", Trees_Name($2));
+			Oberon_PrintError("error: cannot export local procedure: %s", Trees_Name($2));
 			YYABORT;
 		}
 		$$ = $2;
@@ -1828,7 +1839,7 @@ TypeSectionOpt:
 		if (unresolvedPointerTypes != NULL) {
 			unresolvedPointerType = Trees_Left(unresolvedPointerTypes);
 			undeclaredBaseType = Types_PointerBaseType(unresolvedPointerType);
-			yyerror("error: undeclared pointer base type: %s", Trees_Name(undeclaredBaseType));
+			Oberon_PrintError("error: undeclared pointer base type: %s", Trees_Name(undeclaredBaseType));
 			YYABORT;
 		}
 	}
@@ -1903,7 +1914,7 @@ FPSectionRep:
 			while (p1 != NULL) {
 				paramName1 = Trees_Name(Trees_Left(p1));
 				if (strcmp(paramName1, paramName) == 0) {
-					yyerror("error: repeated parameter: %s", paramName);
+					Oberon_PrintError("error: repeated parameter: %s", paramName);
 					YYABORT;
 				}
 				p1 = Trees_Right(p1);
@@ -1929,16 +1940,16 @@ ResultTypeOpt:
 		if ($$ != NULL) {
 			if (Trees_Symbol($$) == IDENT) {
 				if (Trees_Kind($$) != TREES_TYPE_KIND) {
-					yyerror("error: type name expected as result type: %s", Trees_Name($2));
+					Oberon_PrintError("error: type name expected as result type: %s", Trees_Name($2));
 					YYABORT;
 				}
 				if (! Types_Scalar($$)) {
-					yyerror("error: scalar result type expected: %s", Trees_Name($2));
+					Oberon_PrintError("error: scalar result type expected: %s", Trees_Name($2));
 					YYABORT;
 				}
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name($2));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name($2));
 			YYABORT;
 		}
 	}
@@ -1993,7 +2004,7 @@ IdentRep:
 		while (curr != NULL) {
 			identName = Trees_Name(Trees_Left(curr));
 			if (strcmp(identName, $3) == 0) {
-				yyerror("error: repeated identifier: %s", identName);
+				Oberon_PrintError("error: repeated identifier: %s", identName);
 				YYABORT;
 			}
 			curr = Trees_Right(curr);
@@ -2013,7 +2024,7 @@ FormalType:
 				$1 = Trees_Right($1);
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name($2));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name($2));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -2039,6 +2050,7 @@ module:
 		const char *symfilePath;
 
 		if (strcmp($7, inputModuleName) == 0) {
+			CheckUnusedIdentifiers();
 			Generate_ModuleEnd();
 			Generate_Close();
 
@@ -2052,7 +2064,7 @@ module:
 			}
 			YYACCEPT;
 		} else {
-			yyerror("error: expected identifier %s", inputModuleName);
+			Oberon_PrintError("error: expected identifier %s", inputModuleName);
 			YYABORT;
 		}
 	}
@@ -2067,7 +2079,7 @@ ModuleHeading:
 				Generate_ModuleHeading();
 			}
 		} else {
-			yyerror("error: module name does not match filename: %s", $2);
+			Oberon_PrintError("error: module name does not match filename: %s", $2);
 			YYABORT;
 		}
 	}
@@ -2180,7 +2192,7 @@ import:
 					} else if (parseMode == OBERON_IMPORT_LIST_MODE) {
 						$$ = Trees_NewIdent(module);
 					} else {
-						moduleDirPath = ModulePaths_Directory(module, ".");
+						moduleDirPath = ModulePaths_Directory(module, ".", 0);
 						if (moduleDirPath != NULL) {
 							/*import identifiers into the symbol table*/
 							symbolFileDir = Util_String("%s/.obnc", moduleDirPath);
@@ -2191,7 +2203,7 @@ import:
 							if (Files_Exists(symbolFileName)) {
 								Table_Import(symbolFileName, module, qualifier);
 							} else {
-								yyerror("error: symbol file not found for module %s: %s", module, symbolFileName);
+								Oberon_PrintError("error: symbol file not found for module %s: %s", module, symbolFileName);
 								YYABORT;
 							}
 
@@ -2199,20 +2211,20 @@ import:
 							Trees_SetKind(TREES_QUALIFIER_KIND, moduleIdent);
 							$$ = Trees_NewNode(TREES_NOSYM, moduleIdent, Trees_NewString(moduleDirPath));
 						} else {
-							yyerror("error: imported module not found: %s", module);
+							Oberon_PrintError("error: imported module not found: %s", module);
 							YYABORT;
 						}
 					}
 				} else {
-					yyerror("error: qualifier already used: %s", qualifier);
+					Oberon_PrintError("error: qualifier already used: %s", qualifier);
 					YYABORT;
 				}
 			} else {
-				yyerror("error: module already imported: %s", module);
+				Oberon_PrintError("error: module already imported: %s", module);
 				YYABORT;
 			}
 		} else {
-			yyerror("error: a module cannot import itself");
+			Oberon_PrintError("error: a module cannot import itself");
 			YYABORT;
 		}
 	}
@@ -2240,28 +2252,14 @@ ModuleStatements:
 
 void Oberon_Init(void)
 {
-	static int initialized = 0;
-
 	if (! initialized) {
+		initialized = 1;
 		Error_Init();
 		Files_Init();
+		Generate_Init();
 		ModulePaths_Init();
 		Table_Init();
-		initialized = 1;
 	}
-}
-
-
-static char *ModuleName(const char filename[])
-{
-	char *base, *suffix;
-
-	base = Paths_Basename(filename);
-	suffix = strchr(base, '.');
-	if (suffix != NULL) {
-		*suffix = '\0';
-	}
-	return base;
 }
 
 
@@ -2271,14 +2269,15 @@ void Oberon_Parse(const char inputFile[], int mode)
 	FILE *fp;
 	int error;
 
+	assert(initialized);
 	inputFilename = inputFile;
 	parseMode = mode;
-	inputModuleName = ModuleName(inputFile);
+	inputModuleName = Paths_SansSuffix(Paths_Basename(inputFile));
 
 	yyin = fopen(inputFile, "r");
 	if (yyin != NULL) {
 		if (mode != OBERON_IMPORT_LIST_MODE) {
-			Generate_Open(inputModuleName, mode == OBERON_ENTRY_POINT_MODE);
+			Generate_Open(inputFile, mode == OBERON_ENTRY_POINT_MODE);
 
 			impFile = Util_String(".obnc/%s.imp", inputModuleName);
 			if (parseMode == OBERON_NORMAL_MODE) {
@@ -2303,15 +2302,83 @@ void Oberon_Parse(const char inputFile[], int mode)
 }
 
 
-void yyerror(const char format[], ...)
+void Oberon_PrintError(const char format[], ...)
 {
 	va_list ap;
 
+	assert(initialized);
 	fprintf(stderr, "obnc-compile: %s:%d: ", inputFilename, yylineno);
 	va_start(ap, format);
 	vfprintf(stderr, format, ap);
 	va_end(ap);
 	fputc('\n', stderr);
+}
+
+
+void yyerror(const char msg[])
+{
+	Oberon_PrintError("%s", msg);
+}
+
+
+static void PrintError(int line, const char format[], ...)
+	__attribute__ ((format (printf, 2, 3)));
+
+static void PrintError(int line, const char format[], ...)
+{
+	va_list ap;
+
+	fprintf(stderr, "obnc-compile: %s:%d: ", inputFilename, line);
+	va_start(ap, format);
+	vfprintf(stderr, format, ap);
+	va_end(ap);
+	fputc('\n', stderr);
+}
+
+
+static char *IdentKindString(int kind)
+{
+	char *result;
+
+	switch (kind) {
+		case TREES_CONSTANT_KIND:
+			result = Util_String("constant");
+			break;
+		case TREES_TYPE_KIND:
+			result = Util_String("type");
+			break;
+		case TREES_VARIABLE_KIND:
+			result = Util_String("variable");
+			break;
+		case TREES_PROCEDURE_KIND:
+			result = Util_String("procedure");
+			break;
+		case TREES_QUALIFIER_KIND:
+			result = Util_String("module");
+			break;
+		default:
+			result = Util_String("identifier");
+	}
+	return result;
+}
+
+
+static void CheckUnusedIdentifiers(void)
+{
+	Trees_Node unusedIdents, ident;
+	int kind;
+
+	unusedIdents = Table_UnusedIdentifiers();
+	while (unusedIdents != NULL) {
+		ident = Trees_Left(unusedIdents);
+		kind = Trees_Kind(ident);
+		if (! Trees_Exported(ident)
+				&& (kind != TREES_VALUE_PARAM_KIND)
+				&& (kind != TREES_VAR_PARAM_KIND)) {
+			PrintError(Trees_LineNumber(ident), "note: unused %s: %s", IdentKindString(Trees_Kind(ident)), Trees_UnaliasedName(ident));
+		}
+		unusedIdents = Trees_Right(unusedIdents);
+	}
 }
 
 
@@ -2374,11 +2441,11 @@ static Trees_Node ResolvedType(Trees_Node type, int isTypeDecl)
 						result = identDef;
 					}
 				} else {
-					yyerror("error: unresolved type: %s", name);
+					Oberon_PrintError("error: unresolved type: %s", name);
 					exit(EXIT_FAILURE);
 				}
 			} else {
-				yyerror("error: type expected: %s", name);
+				Oberon_PrintError("error: type expected: %s", name);
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -2404,6 +2471,7 @@ static void ResolvePointerTypes(Trees_Node baseType)
 		currBaseType = Types_PointerBaseType(currPointerType);
 		if (strcmp(Trees_Name(currBaseType), baseTypeName) == 0) {
 			if (Types_IsRecord(baseType)) {
+				Trees_SetUsed(baseType);
 				/*update pointer base type*/
 				Types_SetPointerBaseType(baseType, currPointerType);
 				/*delete current node*/
@@ -2413,7 +2481,7 @@ static void ResolvePointerTypes(Trees_Node baseType)
 					Trees_SetRight(Trees_Right(curr), prev);
 				}
 			} else {
-				yyerror("error: record type expected in declaration of pointer base type: %s", baseTypeName);
+				Oberon_PrintError("error: record type expected in declaration of pointer base type: %s", baseTypeName);
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -2533,7 +2601,7 @@ static int IsValueExpression(Trees_Node exp)
 static void CheckIsValueExpression(Trees_Node exp)
 {
 	if (! IsValueExpression(exp)) {
-		yyerror("error: value expected: %s", Trees_Name(BaseIdent(exp)));
+		Oberon_PrintError("error: value expected: %s", Trees_Name(BaseIdent(exp)));
 		exit(EXIT_FAILURE);
 	}
 }
@@ -2560,11 +2628,11 @@ static Trees_Node Designator(const char identName[], Trees_Node selectorList)
 					qualidentSym = Table_At(qualidentName);
 					qualidentSelectorList = Trees_Right(selectorList);
 					if (qualidentSym == NULL) {
-						yyerror("error: undeclared identifier: %s", qualidentName);
+						Oberon_PrintError("error: undeclared identifier: %s", qualidentName);
 						exit(EXIT_FAILURE);
 					}
 				} else {
-					yyerror("error: '.' expected after qualifier: %s", identName);
+					Oberon_PrintError("error: '.' expected after qualifier: %s", identName);
 					exit(EXIT_FAILURE);
 				}
 			} else {
@@ -2573,7 +2641,7 @@ static Trees_Node Designator(const char identName[], Trees_Node selectorList)
 			}
 
 		} else {
-			yyerror("error: undeclared identifier: %s", identName);
+			Oberon_PrintError("error: undeclared identifier: %s", identName);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -2604,7 +2672,7 @@ static Trees_Node FirstSelector(Trees_Node designator)
 static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *parameterListFound)
 {
 	Trees_Node currType, currTypeStruct, currSelector, prevSelector, indexExp, lengthNode, pointerNode, expList, extendedType, symbol, varField, typeField, fieldBaseType;
-	OBNC_LONGI int length, index;
+	OBNC_INTEGER length, index;
 	const char *fieldName;
 
 	currType = identType;
@@ -2622,14 +2690,14 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 						length = Trees_Integer(lengthNode);
 						index = Trees_Integer(indexExp);
 						if ((index < 0) || (index >= length)) {
-							yyerror("error: invalid array index: %" OBNC_INT_MOD "d not between 0 and %" OBNC_INT_MOD "d", index, length - 1);
+							Oberon_PrintError("error: invalid array index: %" OBNC_INT_MOD "d not between 0 and %" OBNC_INT_MOD "d", index, (OBNC_INTEGER) (length - 1));
 							exit(EXIT_FAILURE);
 						}
 					}
 					Trees_SetType(currType, currSelector);
 					currType = Types_ElementType(currTypeStruct);
 				} else {
-					yyerror("error: array variable expected in element selector");
+					Oberon_PrintError("error: array variable expected in element selector");
 					exit(EXIT_FAILURE);
 				}
 				break;
@@ -2653,16 +2721,16 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 								}
 								currType = Trees_Type(typeField);
 							} else {
-								yyerror("error: undeclared field: %s", fieldName);
+								Oberon_PrintError("error: undeclared field: %s", fieldName);
 								exit(EXIT_FAILURE);
 							}
 							break;
 						default:
-							yyerror("error: record variable expected in field selector");
+							Oberon_PrintError("error: record variable expected in field selector");
 							exit(EXIT_FAILURE);
 					}
 				} else {
-					yyerror("error: record variable expected in field selector");
+					Oberon_PrintError("error: record variable expected in field selector");
 					exit(EXIT_FAILURE);
 				}
 				break;
@@ -2671,7 +2739,7 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 					Trees_SetType(currType, currSelector);
 					currType = Types_PointerBaseType(currTypeStruct);
 				} else {
-					yyerror("error: pointer variable expected in pointer dereference");
+					Oberon_PrintError("error: pointer variable expected in pointer dereference");
 					exit(EXIT_FAILURE);
 				}
 				break;
@@ -2696,40 +2764,40 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 											Trees_SetType(extendedType, currSelector);
 											currType = extendedType;
 										} else {
-											yyerror("error: extended type expected: %s", Trees_Name(extendedType));
+											Oberon_PrintError("error: extended type expected: %s", Trees_Name(extendedType));
 											exit(EXIT_FAILURE);
 										}
 									} else {
 										if (Types_IsRecord(currType)) {
 											if (Trees_Kind(BaseIdent(designator)) != TREES_VAR_PARAM_KIND) {
-												yyerror("error: variable parameter expected in type guard");
+												Oberon_PrintError("error: variable parameter expected in type guard");
 											} else {
-												yyerror("error: record type expected in type guard: %s", Trees_Name(extendedType));
+												Oberon_PrintError("error: record type expected in type guard: %s", Trees_Name(extendedType));
 											}
 											exit(EXIT_FAILURE);
 										} else {
-											yyerror("error: pointer type expected in type guard: %s", Trees_Name(extendedType));
+											Oberon_PrintError("error: pointer type expected in type guard: %s", Trees_Name(extendedType));
 											exit(EXIT_FAILURE);
 										}
 									}
 								} else {
-									yyerror("error: type name expected: %s", Trees_Name(extendedType));
+									Oberon_PrintError("error: type name expected: %s", Trees_Name(extendedType));
 									exit(EXIT_FAILURE);
 								}
 							} else {
-								yyerror("error: undeclared identifier: %s", Trees_Name(extendedType));
+								Oberon_PrintError("error: undeclared identifier: %s", Trees_Name(extendedType));
 								exit(EXIT_FAILURE);
 							}
 						} else {
-							yyerror("error: identifier expected in type guard");
+							Oberon_PrintError("error: identifier expected in type guard");
 							exit(EXIT_FAILURE);
 						}
 					} else {
-						yyerror("error: unexpected comma in type guard");
+						Oberon_PrintError("error: unexpected comma in type guard");
 						exit(EXIT_FAILURE);
 					}
 				} else {
-					yyerror("error: unexpected parenthesis in designator which is not a record, pointer or procedure");
+					Oberon_PrintError("error: unexpected parenthesis in designator which is not a record, pointer or procedure");
 					exit(EXIT_FAILURE);
 				}
 				break;
@@ -2743,7 +2811,7 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 	if (currSelector == NULL) {
 		Trees_SetType(currType, designator);
 	} else {
-		yyerror("error: unexpected selector after procedure call");
+		Oberon_PrintError("error: unexpected selector after procedure call");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3116,7 +3184,7 @@ static Trees_Node TermConstValue(int operator, Trees_Node expA, Trees_Node expB)
 						if (Trees_Real(expB) != 0) {
 							result = Trees_NewReal(Trees_Real(expA) / Trees_Real(expB));
 						} else {
-							yyerror("warning: division by zero");
+							Oberon_PrintError("warning: division by zero");
 						}
 					}
 					break;
@@ -3132,7 +3200,7 @@ static Trees_Node TermConstValue(int operator, Trees_Node expA, Trees_Node expB)
 				if (Trees_Integer(expB) > 0) {
 					result = Trees_NewInteger(OBNC_DIV(Trees_Integer(expA), Trees_Integer(expB)));
 				} else {
-					yyerror("error: positive divisor expected in DIV expression: %" OBNC_INT_MOD "d", Trees_Integer(expB));
+					Oberon_PrintError("error: positive divisor expected in DIV expression: %" OBNC_INT_MOD "d", Trees_Integer(expB));
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -3142,7 +3210,7 @@ static Trees_Node TermConstValue(int operator, Trees_Node expA, Trees_Node expB)
 				if (Trees_Integer(expB) > 0) {
 					result = Trees_NewInteger(OBNC_MOD(Trees_Integer(expA), Trees_Integer(expB)));
 				} else {
-					yyerror("error: positive divisor expected in MOD expression: %" OBNC_INT_MOD "d", Trees_Integer(expB));
+					Oberon_PrintError("error: positive divisor expected in MOD expression: %" OBNC_INT_MOD "d", Trees_Integer(expB));
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -3297,14 +3365,14 @@ static void ValidateAssignment(Trees_Node expression, Trees_Node targetType, int
 	} else {
 		errorContext = AssignmentErrorContext(context, paramPos);
 		if (IsString(expression) && Types_IsCharacterArray(targetType) && !Types_IsOpenArray(targetType)) {
-			yyerror("error: string too long in %s: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", errorContext, Types_StringLength(Trees_Type(expression)), Trees_Integer(Types_ArrayLength(targetType)));
+			Oberon_PrintError("error: string too long in %s: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", errorContext, Types_StringLength(Trees_Type(expression)), Trees_Integer(Types_ArrayLength(targetType)));
 			exit(EXIT_FAILURE);
 		} else if (Types_IsPredeclaredProcedure(Trees_Type(expression))
 				&& Types_IsProcedure(targetType)) {
-			yyerror("error: non-predeclared procedure expected in %s", errorContext);
+			Oberon_PrintError("error: non-predeclared procedure expected in %s", errorContext);
 			exit(EXIT_FAILURE);
 		} else {
-			yyerror("error: incompatible types in %s: %s -> %s",
+			Oberon_PrintError("error: incompatible types in %s: %s -> %s",
 				errorContext, TypeString(Trees_Type(expression)), TypeString(targetType));
 			exit(EXIT_FAILURE);
 		}
@@ -3323,15 +3391,15 @@ static void ValidateActualParameter(Trees_Node actualParam, Trees_Node formalPar
 			|| (IsDesignator(actualParam) && Writable(actualParam))) {
 		if (Types_IsOpenArray(formalType)) {
 			if (! Types_ArrayCompatible(actualType, formalType)) {
-				yyerror("error: array incompatible types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+				Oberon_PrintError("error: array incompatible types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 				exit(EXIT_FAILURE);
 			}
 		} else if (Trees_Kind(formalParam) == TREES_VALUE_PARAM_KIND) {
 			if (! Types_AssignmentCompatible(actualParam, formalType)) {
 				if (Types_IsString(actualType) && Types_IsCharacterArray(formalType)) {
-					yyerror("error: string too long in substitution of parameter %d: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", paramPos + 1, Types_StringLength(actualType), Trees_Integer(Types_ArrayLength(formalType)));
+					Oberon_PrintError("error: string too long in substitution of parameter %d: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", paramPos + 1, Types_StringLength(actualType), Trees_Integer(Types_ArrayLength(formalType)));
 				} else {
-					yyerror("error: assignment incompatible types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+					Oberon_PrintError("error: assignment incompatible types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 				}
 				exit(EXIT_FAILURE);
 			}
@@ -3339,22 +3407,22 @@ static void ValidateActualParameter(Trees_Node actualParam, Trees_Node formalPar
 			if (Types_IsRecord(formalType)) {
 				if (Types_IsRecord(actualType)) {
 					if (! Types_Extends(formalType, actualType)) {
-						yyerror("error: incompatible record types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+						Oberon_PrintError("error: incompatible record types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 						exit(EXIT_FAILURE);
 					}
 				} else {
-					yyerror("error: record expected in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+					Oberon_PrintError("error: record expected in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 					exit(EXIT_FAILURE);
 				}
 			} else {
 				if (! Types_Same(actualType, formalType)) {
-					yyerror("error: same types expected in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+					Oberon_PrintError("error: same types expected in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 					exit(EXIT_FAILURE);
 				}
 			}
 		}
 	} else {
-		yyerror("error: writable variable expected in substitution of parameter %d in %s",
+		Oberon_PrintError("error: writable variable expected in substitution of parameter %d in %s",
 			paramPos + 1, DesignatorString(procDesignator));
 		exit(EXIT_FAILURE);
 	}
@@ -3382,10 +3450,10 @@ static void ValidateProcedureCall(Trees_Node expList, Trees_Node fpList, Trees_N
 		pos++;
 	}
 	if ((expList == NULL) && (fpList != NULL)) {
-		yyerror("error: too few actual parameters in procedure call: %s", DesignatorString(procDesignator));
+		Oberon_PrintError("error: too few actual parameters in procedure call: %s", DesignatorString(procDesignator));
 		exit(EXIT_FAILURE);
 	} else if ((expList != NULL) && (fpList == NULL)) {
-		yyerror("error: too many actual parameters in procedure call: %s", DesignatorString(procDesignator));
+		Oberon_PrintError("error: too many actual parameters in procedure call: %s", DesignatorString(procDesignator));
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3394,10 +3462,10 @@ static void ValidateProcedureCall(Trees_Node expList, Trees_Node fpList, Trees_N
 static void ValidateProcedureKind(const char procName[], int functionCallExpected, int isFunctionCall)
 {
 	if (isFunctionCall && ! functionCallExpected) {
-		yyerror("error: function procedure expected: %s", procName);
+		Oberon_PrintError("error: function procedure expected: %s", procName);
 		exit(EXIT_FAILURE);
 	} else if (! isFunctionCall && functionCallExpected) {
-		yyerror("error: proper procedure expected: %s", procName);
+		Oberon_PrintError("error: proper procedure expected: %s", procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3411,9 +3479,9 @@ static void ValidateParameterCount(const char procName[], int min, int max, int 
 
 	if ((actual < min) || (actual > max)) {
 		if (min == max) {
-			yyerror("error: %d parameter(s) expected: %s", min, procName);
+			Oberon_PrintError("error: %d parameter(s) expected: %s", min, procName);
 		} else {
-			yyerror("error: %d or %d parameters expected: %s", min, max, procName);
+			Oberon_PrintError("error: %d or %d parameters expected: %s", min, max, procName);
 		}
 		exit(EXIT_FAILURE);
 	}
@@ -3423,7 +3491,7 @@ static void ValidateParameterCount(const char procName[], int min, int max, int 
 static void ValidateTypeParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! (IsDesignator(param) && (Trees_Kind(BaseIdent(param)) == TREES_TYPE_KIND))) {
-		yyerror("error: type identifier expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: type identifier expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3432,7 +3500,7 @@ static void ValidateTypeParameter(const char procName[], Trees_Node param, int p
 static void ValidateValueParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! IsValueExpression(param)) {
-		yyerror("error: expression expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: expression expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3441,10 +3509,10 @@ static void ValidateValueParameter(const char procName[], Trees_Node param, int 
 static void ValidateVariableParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! IsDesignator(param)) {
-		yyerror("error: variable expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: variable expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	} else if (! Writable(param)) {
-		yyerror("error: writable variable expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: writable variable expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3455,7 +3523,7 @@ static void ValidateScalarParameter(const char procName[], Trees_Node paramType,
 	assert(Types_IsType(paramType));
 
 	if (! Types_Scalar(paramType)) {
-		yyerror("error: scalar type expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: scalar type expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3464,7 +3532,7 @@ static void ValidateScalarParameter(const char procName[], Trees_Node paramType,
 static void ValidateIntegerParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! Types_IsInteger(Trees_Type(param))) {
-		yyerror("error: integer expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: integer expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3473,24 +3541,15 @@ static void ValidateIntegerParameter(const char procName[], Trees_Node param, in
 static void ValidateRealParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! Types_IsReal(Trees_Type(param))) {
-		yyerror("error: parameter of type REAL expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: parameter of type REAL expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
 
 
-static void ValidateIntegerSize(const char procName[])
+static OBNC_INTEGER TypeSize(Trees_Node type)
 {
-		if (sizeof (OBNC_LONGI int) != sizeof (void *)) {
-			yyerror("error: integer size (%lu) and address size (%lu) are unequal: %s (requires OBNC to be compiled to use integers of size %lu)", (unsigned long) sizeof (OBNC_LONGI int), (unsigned long) sizeof (void *), procName, (unsigned long) sizeof (void *));
-			exit(EXIT_FAILURE);
-		}
-}
-
-
-static OBNC_LONGI int TypeSize(Trees_Node type)
-{
-	OBNC_LONGI int result = 0;
+	OBNC_INTEGER result = 0;
 
 	switch (Trees_Symbol(Types_Structure(type))) {
 		case TREES_BOOLEAN_TYPE:
@@ -3500,16 +3559,16 @@ static OBNC_LONGI int TypeSize(Trees_Node type)
 			result = sizeof (char);
 			break;
 		case TREES_INTEGER_TYPE:
-			result = sizeof (OBNC_LONGI int);
+			result = sizeof (OBNC_INTEGER);
 			break;
 		case TREES_REAL_TYPE:
-			result = sizeof (OBNC_LONGR double);
+			result = sizeof (OBNC_REAL);
 			break;
 		case TREES_BYTE_TYPE:
 			result = sizeof (unsigned char);
 			break;
 		case TREES_SET_TYPE:
-			result = sizeof (unsigned OBNC_LONGI int);
+			result = sizeof (unsigned OBNC_INTEGER);
 			break;
 		case ARRAY:
 			result = Trees_Integer(Types_ArrayLength(type)) * TypeSize(Types_ElementType(type));
@@ -3608,7 +3667,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					/*do nothing*/
 					break;
 				default:
-					yyerror("error: numeric parameter expected: %s", procName);
+					Oberon_PrintError("error: numeric parameter expected: %s", procName);
 					exit(EXIT_FAILURE);
 			}
 			if (result == NULL) {
@@ -3637,7 +3696,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					resultType = Trees_NewLeaf(TREES_INTEGER_TYPE);
 				}
 			} else {
-				yyerror("error: array parameter expected: %s", procName);
+				Oberon_PrintError("error: array parameter expected: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -3690,7 +3749,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateValueParameter(procName, param[0], 0);
 			ValidateRealParameter(procName, param[0], 0);
 			if (IsReal(param[0])) {
-				OBNC_LONGR double x = Trees_Real(param[0]);
+				OBNC_REAL x = Trees_Real(param[0]);
 				Range_CheckFLOOR(x);
 				result = Trees_NewInteger(OBNC_FLOOR(x));
 			} else {
@@ -3718,9 +3777,9 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					break;
 				case TREES_STRING_TYPE:
 					if (Types_StringLength(paramTypes[0]) <= 1) {
-						result = Trees_NewInteger(Trees_String(param[0])[0]);
+						result = Trees_NewInteger((unsigned char) Trees_String(param[0])[0]);
 					} else {
-						yyerror("error: single-character string parameter expected: %s", procName);
+						Oberon_PrintError("error: single-character string parameter expected: %s", procName);
 						exit(EXIT_FAILURE);
 					}
 					break;
@@ -3733,11 +3792,11 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					break;
 				case TREES_SET_TYPE:
 					if (IsSet(param[0])) {
-						result = Trees_NewInteger((OBNC_LONGI int) Trees_Set(param[0]));
+						result = Trees_NewInteger((OBNC_INTEGER) Trees_Set(param[0]));
 					}
 					break;
 				default:
-					yyerror("error: character parameter expected: %s", procName);
+					Oberon_PrintError("error: character parameter expected: %s", procName);
 					exit(EXIT_FAILURE);
 			}
 			if (result == NULL) {
@@ -3750,7 +3809,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateValueParameter(procName, param[0], 0);
 			ValidateIntegerParameter(procName, param[0], 0);
 			if (IsInteger(param[0])) {
-				OBNC_LONGI int i = Trees_Integer(param[0]);
+				OBNC_INTEGER i = Trees_Integer(param[0]);
 				Range_CheckCHR(i);
 				result = Trees_NewChar(OBNC_CHR(i));
 			} else {
@@ -3780,7 +3839,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					ValidateIntegerParameter(procName, param[1], 1);
 				}
 			} else {
-				yyerror("error: set expected in substitution of parameter 1: %s", procName);
+				Oberon_PrintError("error: set expected in substitution of parameter 1: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -3788,15 +3847,8 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateProcedureKind(procName, 0, isFunctionCall);
 			ValidateParameterCount(procName, 1, 1, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
-			if (Types_IsBoolean(paramTypes[0])) {
-				result = Trees_NewNode(
-					TREES_ASSERT_PROC,
-					param[0],
-					Trees_NewNode(TREES_FILE_POSITION,
-						Trees_NewString(inputFilename),
-						Trees_NewInteger(yylineno)));
-			} else {
-				yyerror("error: boolean parameter expected: %s", procName);
+			if (! Types_IsBoolean(paramTypes[0])) {
+				Oberon_PrintError("error: boolean parameter expected: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -3805,7 +3857,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateParameterCount(procName, 1, 1, paramCount);
 			ValidateVariableParameter(procName, param[0], 0);
 			if (! Types_IsPointer(paramTypes[0])) {
-				yyerror("error: pointer parameter expected: %s", procName);
+				Oberon_PrintError("error: pointer parameter expected: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -3826,7 +3878,6 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateIntegerParameter(procName, param[1], 1);
 			break;
 		case TREES_ADR_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 1, isFunctionCall);
 			ValidateParameterCount(procName, 1, 1, paramCount);
 			ValidateVariableParameter(procName, param[0], 0);
@@ -3834,7 +3885,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			break;
 		case TREES_SIZE_PROC:
 			{
-				OBNC_LONGI int size;
+				OBNC_INTEGER size;
 
 				ValidateProcedureKind(procName, 1, isFunctionCall);
 				ValidateParameterCount(procName, 1, 1, paramCount);
@@ -3848,7 +3899,6 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			}
 			break;
 		case TREES_BIT_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 1, isFunctionCall);
 			ValidateParameterCount(procName, 2, 2, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
@@ -3861,31 +3911,28 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			resultType = Trees_NewLeaf(TREES_BOOLEAN_TYPE);
 			break;
 		case TREES_GET_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 0, isFunctionCall);
 			ValidateParameterCount(procName, 2, 2, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
 			ValidateIntegerParameter(procName, param[0], 0);
 			ValidateVariableParameter(procName, param[1], 1);
 			if (! Types_Basic(paramTypes[1])) {
-				yyerror("error: variable of basic type expected in substitution of parameter 2: %s", procName);
+				Oberon_PrintError("error: variable of basic type expected in substitution of parameter 2: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
 		case TREES_PUT_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 0, isFunctionCall);
 			ValidateParameterCount(procName, 2, 2, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
 			ValidateIntegerParameter(procName, param[0], 0);
 			ValidateValueParameter(procName, param[1], 1);
 			if (! Types_Basic(paramTypes[1]) && ! Types_IsSingleCharString(paramTypes[1])) {
-				yyerror("error: expression of basic type expected in substitution of parameter 2: %s", procName);
+				Oberon_PrintError("error: expression of basic type expected in substitution of parameter 2: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
 		case TREES_COPY_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 0, isFunctionCall);
 			ValidateParameterCount(procName, 3, 3, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
@@ -3895,7 +3942,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateValueParameter(procName, param[2], 2);
 			ValidateIntegerParameter(procName, param[2], 2);
 			if (IsInteger(param[2]) && (Trees_Integer(param[2]) < 0)) {
-				yyerror("warning: non-negative count expected in %s: %" OBNC_INT_MOD "d", procName, Trees_Integer(param[2]));
+				Oberon_PrintError("warning: non-negative count expected in %s: %" OBNC_INT_MOD "d", procName, Trees_Integer(param[2]));
 			}
 			break;
 		case TREES_VAL_PROC:
@@ -3934,7 +3981,7 @@ static void HandleProcedureCall(Trees_Node designator, Trees_Node expList, int i
 	if (Types_IsPredeclaredProcedure(Trees_Type(ident))) {
 		*ast = PredeclaredProcedureAST(Trees_Name(ident), expList, isFunctionCall);
 		if (*ast == NULL) {
-			yyerror("error: procedure expected");
+			Oberon_PrintError("error: procedure expected");
 			exit(EXIT_FAILURE);
 		}
 	} else {
@@ -3949,11 +3996,11 @@ static void HandleProcedureCall(Trees_Node designator, Trees_Node expList, int i
 				if (resultType != NULL) {
 					Trees_SetType(resultType, *ast);
 				} else {
-					yyerror("error: function procedure expected: %s", Trees_Name(ident));
+					Oberon_PrintError("error: function procedure expected: %s", Trees_Name(ident));
 					exit(EXIT_FAILURE);
 				}
 			} else if (resultType != NULL) {
-				yyerror("error: proper procedure expected: %s", Trees_Name(ident));
+				Oberon_PrintError("error: proper procedure expected: %s", Trees_Name(ident));
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -3964,7 +4011,7 @@ static void HandleProcedureCall(Trees_Node designator, Trees_Node expList, int i
 
 static void CheckIntegerLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 {
-	OBNC_LONGI int aMin, aMax, bMin, bMax;
+	OBNC_INTEGER aMin, aMax, bMin, bMax;
 
 	if (Trees_Symbol(rangeA) == DOTDOT) {
 		aMin = Trees_Integer(Trees_Left(rangeA));
@@ -3982,10 +4029,10 @@ static void CheckIntegerLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 	}
 
 	if ((aMin >= bMin) && (aMin <= bMax)) {
-		yyerror("error: case label defined twice: %" OBNC_INT_MOD "d", aMin);
+		Oberon_PrintError("error: case label defined twice: %" OBNC_INT_MOD "d", aMin);
 		exit(EXIT_FAILURE);
 	} else if ((bMin >= aMin) && (bMin <= aMax)) {
-		yyerror("error: case label defined twice: %" OBNC_INT_MOD "d", bMin);
+		Oberon_PrintError("error: case label defined twice: %" OBNC_INT_MOD "d", bMin);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3994,6 +4041,7 @@ static void CheckIntegerLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 static void CheckCharLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 {
 	char aMin, aMax, bMin, bMax;
+	int hasRepeatedLabel, repeatedLabel;
 
 	if (Trees_Symbol(rangeA) == DOTDOT) {
 		aMin = Trees_Char(Trees_Left(rangeA));
@@ -4011,10 +4059,20 @@ static void CheckCharLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 	}
 
 	if ((aMin >= bMin) && (aMin <= bMax)) {
-		yyerror("error: case label defined twice: %c", aMin);
-		exit(EXIT_FAILURE);
+		hasRepeatedLabel = 1;
+		repeatedLabel = aMin;
 	} else if ((bMin >= aMin) && (bMin <= aMax)) {
-		yyerror("error: case label defined twice: %c", bMin);
+		hasRepeatedLabel = 1;
+		repeatedLabel = bMin;
+	} else {
+		hasRepeatedLabel = 0;
+	}
+	if (hasRepeatedLabel) {
+		if (isprint(repeatedLabel)) {
+			Oberon_PrintError("error: case label defined twice: \"%c\"", repeatedLabel);
+		} else {
+			Oberon_PrintError("error: case label defined twice: 0%XX", repeatedLabel);
+		}
 		exit(EXIT_FAILURE);
 	}
 }
@@ -4043,7 +4101,7 @@ static void CheckCaseLabelUniqueness(Trees_Node newLabelRange)
 				break;
 			case IDENT:
 				if (Types_Same(definedLabelRange, newLabelRange)) {
-					yyerror("error: type case label defined twice: %s", Trees_Name(newLabelRange));
+					Oberon_PrintError("error: type case label defined twice: %s", Trees_Name(newLabelRange));
 					exit(EXIT_FAILURE);
 				}
 				break;

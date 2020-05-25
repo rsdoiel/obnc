@@ -48,17 +48,17 @@ Without argument, display version and exit. Otherwise, output progress of compil
 Output progress of compiled modules with compiler and linker subcommands.
 .TP
 .BR \-x
-Make cross compilation possible by compiling and linking modules from C source (if available) in a single command.
+Compile and link modules from C source (if available) in a single command. When a program is cross-compiled, this option prevents using object files compiled for the host system. It also prevents leaving behind object files which are incompatible with the host system.
 .SH ENVIRONMENT
 .IP CC
 Specifies the C compiler to use (default is cc).
 .IP CFLAGS
-Options for the C compiler. The following constants can be customized with the flag -D name=value and are intended to be used with the cross compilation option -x:
+Options for the C compiler. The following constants can be customized with the flag -D name=value and are intended to be used with the option -x:
 .RS
-.IP OBNC_CONFIG_USE_LONG_INT
-Value 0 or 1 controls the use of `long' C type specifier for INTEGER and SET
-.IP OBNC_CONFIG_USE_LONG_REAL
-Value 0 or 1 controls the use of `long' C type specifier for REAL
+.IP OBNC_CONFIG_C_INT_TYPE
+Controls the size of type INTEGER and SET. The value is OBNC_CONFIG_SHORT, OBNC_CONFIG_INT, OBNC_CONFIG_LONG or OBNC_CONFIG_LONG_LONG.
+.IP OBNC_CONFIG_C_REAL_TYPE
+Controls the size of type REAL. The value is OBNC_CONFIG_FLOAT, OBNC_CONFIG_DOUBLE or OBNC_CONFIG_LONG_DOUBLE.
 .IP OBNC_CONFIG_TARGET_EMB
 Value 1 builds an executable for a freestanding execution environment (embedded platform). With this option the C main function takes no parameters. The garbage collector is disabled and any call to NEW is invalidated. The executable is not linked with the math library libm.
 .RE
@@ -142,7 +142,7 @@ to
 Implement
 .IR M.c .
 .P
-Note: The initialization function M_Init is called each time a client module imports M. Its statements should therefore be guarded with an initialization flag to make sure they are executed only once.
+Note: The initialization function M__Init is called each time a client module imports M. Its statements should therefore be guarded with an initialization flag to make sure they are executed only once.
 .SH AUTHOR
 Written by Karl Landstr\[:o]m
 .SH "SEE ALSO"

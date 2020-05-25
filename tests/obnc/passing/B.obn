@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -21,6 +21,7 @@ MODULE B;
 
 	TYPE
 		T* = RECORD (C1.T) END;
+		P1* = POINTER TO RECORD (C1.P0) END;
 		U* = POINTER TO UDesc;
 		UDesc* = RECORD f*: INTEGER END;
 		CTAlias* = C1.T;

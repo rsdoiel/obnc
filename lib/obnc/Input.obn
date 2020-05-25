@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -37,4 +37,6 @@ Implements the basic library module from "The Oakwood Guidelines for Oberon-2 Co
 	RETURN 0 (*dummy value*)
 	END Time;
 
+BEGIN
+	ASSERT(Input0.TimeUnit > 0) (*silence "Input0 unused" compiler note*)
 END Input.

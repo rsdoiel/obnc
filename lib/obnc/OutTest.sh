@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -21,16 +21,16 @@ set -e
 
 expectedOutput="a
 abc
--2147483648
+-32768
 -1
  -1
 0
 1
 37
-2147483647
- 00000000
- 00000001
- DEADBEEF
+32767
+ 0000
+ 0001
+ BEEF
 -1.000000E+00
 0.000000E+00
   0.000000E+00
@@ -40,16 +40,35 @@ abc
 
 expectedOutput1="a
 abc
--2147483648
+-32768
 -1
  -1
 0
 1
 37
-2147483647
+32767
+ 00000000
+ 00000001
+ 0000BEEF
+-1.000000E+000
+0.000000E+000
+ 0.000000E+000
+1.000000E+000
+3.700000E+001
+3.700000E-001"
+
+expectedOutput2="a
+abc
+-32768
+-1
+ -1
+0
+1
+37
+32767
  0000000000000000
  0000000000000001
- 00000000DEADBEEF
+ 000000000000BEEF
 -1.000000E+000
 0.000000E+000
  0.000000E+000
@@ -63,7 +82,8 @@ i=1
 for line in $(./OutTest); do
 	expectedLine="$(echo "$expectedOutput" | head -n "$i" | tail -n 1)"
 	expectedLine1="$(echo "$expectedOutput1" | head -n "$i" | tail -n 1)"
-	if [ "$line" != "$expectedLine" ] && [ "$line" != "$expectedLine1" ]; then
+	expectedLine2="$(echo "$expectedOutput2" | head -n "$i" | tail -n 1)"
+	if [ "$line" != "$expectedLine" ] && [ "$line" != "$expectedLine1" ] && [ "$line" != "$expectedLine2" ]; then
 		echo "test failed: output: \"$line\", expected output: \"$expectedLine\" or \"$expectedLine1\"" >&2
 		exit 1
 	fi

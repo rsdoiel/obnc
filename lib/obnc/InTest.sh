@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -23,7 +23,13 @@ input='a
 37
 37H
 3.14
+""
 "foo bar"
-foo/bar'
+0X
+1FX
+0FFX
+foo/bar
+
+foo bar'
 
 echo "$input" | ./InTest

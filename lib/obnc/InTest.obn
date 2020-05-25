@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -48,9 +48,33 @@ BEGIN
 
 	In.String(s);
 	ASSERT(In.Done);
+	ASSERT(s = "");
+
+	In.String(s);
+	ASSERT(In.Done);
 	ASSERT(s = "foo bar");
+
+	In.String(s);
+	ASSERT(In.Done);
+	ASSERT(s = 0X);
+
+	In.String(s);
+	ASSERT(In.Done);
+	ASSERT(s = 1FX);
+
+	In.String(s);
+	ASSERT(In.Done);
+	ASSERT(s = 0FFX);
 
 	In.Name(s);
 	ASSERT(In.Done);
-	ASSERT(s = "foo/bar")
+	ASSERT(s = "foo/bar");
+
+	In.Line(s);
+	ASSERT(In.Done);
+	ASSERT(s = "");
+
+	In.Line(s);
+	ASSERT(In.Done);
+	ASSERT(s = "foo bar")
 END InTest.

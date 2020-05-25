@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.*)
 MODULE Input0;
 (**Access to keyboard and clock
 
-Implements a subset of basic module Input applicable to console applications. Import with Input := Input0 for improved portability.*)
+Implements a subset of basic module Input applicable to console applications. Import with Input := Input0 to emphasize the compatibility.*)
 
 (*implemented in C*)
 

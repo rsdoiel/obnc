@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -96,6 +96,8 @@ enum {
 
 typedef struct Trees_NodeDesc *Trees_Node;
 
+void Trees_Init(void);
+
 Trees_Node Trees_NewNode(int symbol, Trees_Node left, Trees_Node right);
 
 Trees_Node Trees_NewLeaf(int symbol);
@@ -107,6 +109,8 @@ void Trees_SetType(Trees_Node type, Trees_Node ident);
 Trees_Node Trees_Type(Trees_Node node);
 
 int Trees_Symbol(Trees_Node node);
+
+int Trees_LineNumber(Trees_Node node);
 
 void Trees_SetLeft(Trees_Node newLeft, Trees_Node tree);
 
@@ -146,6 +150,9 @@ void Trees_SetExported(Trees_Node ident);
 int Trees_Internal(Trees_Node ident);
 void Trees_SetInternal(Trees_Node ident);
 
+int Trees_Used(Trees_Node ident);
+void Trees_SetUsed(Trees_Node ident);
+
 Trees_Node Trees_Value(Trees_Node constIdent);
 void Trees_SetValue(Trees_Node value, Trees_Node constIdent);
 
@@ -173,22 +180,22 @@ const char *Trees_String(Trees_Node stringNode);
 
 /*Integers*/
 
-Trees_Node Trees_NewInteger(OBNC_LONGI int value);
+Trees_Node Trees_NewInteger(OBNC_INTEGER value);
 
-OBNC_LONGI int Trees_Integer(Trees_Node integerNode);
+OBNC_INTEGER Trees_Integer(Trees_Node integerNode);
 
 
 /*Real numbers*/
 
-Trees_Node Trees_NewReal(OBNC_LONGR double value);
+Trees_Node Trees_NewReal(OBNC_REAL value);
 
-OBNC_LONGR double Trees_Real(Trees_Node realNode);
+OBNC_REAL Trees_Real(Trees_Node realNode);
 
 
 /*Set constants*/
 
-Trees_Node Trees_NewSet(OBNC_LONGI unsigned int value);
+Trees_Node Trees_NewSet(unsigned OBNC_INTEGER value);
 
-OBNC_LONGI unsigned int Trees_Set(Trees_Node setNode);
+unsigned OBNC_INTEGER Trees_Set(Trees_Node setNode);
 
 #endif

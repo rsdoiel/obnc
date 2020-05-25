@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -21,7 +21,7 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <math.h>
 
 #define LEN(arr) ((int) (sizeof (arr) / sizeof (arr)[0]))
-#define INTEGER_BITS (sizeof (OBNC_LONGI int) * CHAR_BIT)
+#define INTEGER_BITS (sizeof (OBNC_INTEGER) * CHAR_BIT)
 
 static void TestABS(void)
 {
@@ -29,9 +29,9 @@ static void TestABS(void)
 	assert(OBNC_ABS_INT(0) == 0);
 	assert(OBNC_ABS_INT(1) == 1);
 
-	assert(OBNC_ABS_FLT(-1.0) == 1.0);
-	assert(OBNC_ABS_FLT(0.0) == 0.0);
-	assert(OBNC_ABS_FLT(1.0) == 1.0);
+	assert(OBNC_ABS_FLT(-OBNC_REAL_SUFFIX(1.0)) == 1.0);
+	assert(OBNC_ABS_FLT(OBNC_REAL_SUFFIX(0.0)) == 0.0);
+	assert(OBNC_ABS_FLT(OBNC_REAL_SUFFIX(1.0)) == 1.0);
 }
 
 
@@ -68,7 +68,7 @@ static void TestROR(void)
 {
 	assert(OBNC_ROR(0, 1) == 0);
 	assert(OBNC_ROR(2, 1) == 1);
-	assert(OBNC_ROR(1, 2) == (OBNC_LONGI int) 1 << (INTEGER_BITS - 2));
+	assert(OBNC_ROR(1, 2) == (OBNC_INTEGER) 1 << (INTEGER_BITS - 2));
 }
 
 
@@ -142,7 +142,7 @@ static void TestINCL(void)
 
 static void TestEXCL(void)
 {
-	OBNC_LONGI unsigned int A;
+	unsigned OBNC_INTEGER A;
 
 	A = 1;
 	OBNC_EXCL(A, 0);
@@ -171,18 +171,18 @@ static void TestASSERT(void)
 static void TestPACK(void)
 {
 	const double eps = 0.01;
-	OBNC_LONGR double x;
+	OBNC_REAL x;
 
 	x = 1.0;
 	OBNC_PACK(x, 2);
-	assert(OBNC_ABS_FLT(x - 4.0) < eps);
+	assert(OBNC_ABS_FLT(x - OBNC_REAL_SUFFIX(4.0)) < eps);
 }
 
 
 static void TestUNPK(void)
 {
-	OBNC_LONGR double x;
-	OBNC_LONGI int n;
+	OBNC_REAL x;
+	OBNC_INTEGER n;
 
 	x = 4.0;
 	OBNC_UNPK(x, n);
@@ -194,12 +194,18 @@ static void TestUNPK(void)
 
 static void TestCMP(void)
 {
-	char s[4];
+	char s[4], t[4];
 
 	strcpy(s, "foo");
 	assert(OBNC_CMP(s, LEN(s), "foo", LEN("foo")) == 0);
 	assert(OBNC_CMP(s, LEN(s), "fool", LEN("fool")) < 0);
 	assert(OBNC_CMP(s, LEN(s), "fo", LEN("fo")) > 0);
+
+	strcpy(s, "fo");
+	s[3] = 'x';
+	strcpy(t, "fo");
+	t[3] = 'y';
+	assert(OBNC_CMP(s, LEN(s), t, LEN(t)) == 0);
 }
 
 

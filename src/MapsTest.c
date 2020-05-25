@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -43,6 +43,7 @@ int main(void)
 	struct { const char *key; int value; } items[] = {{"foo", 1}, {"bar", 2}, {"baz", 3}};
 	int i;
 
+	Maps_Init();
 	Util_Init();
 	map = Maps_New();
 	assert(Maps_IsEmpty(map));

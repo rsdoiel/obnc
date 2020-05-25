@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,17 @@ int OBNC_argc;
 char **OBNC_argv;
 OBNC_TrapHandler OBNC_handleTrap;
 
-static void OBNC_Abort(OBNC_LONGI int exception, const char file[], OBNC_LONGI int fileLen, OBNC_LONGI int line)
+void OBNC_ExitTrap(void)
+{
+#if OBNC_CONFIG_TARGET_EMB
+	while (1);
+#else
+	exit(EXIT_FAILURE);
+#endif
+}
+
+
+static void ExitTrapWithMessage(OBNC_INTEGER exception, const char file[], OBNC_INTEGER fileLen, OBNC_INTEGER line)
 {
 	UNUSED(fileLen);
 	fputs("Exception (E", stderr);
@@ -62,11 +72,7 @@ static void OBNC_Abort(OBNC_LONGI int exception, const char file[], OBNC_LONGI i
 	fputs(")", stderr);
 #endif
 	putc('\n', stderr);
-#if OBNC_CONFIG_TARGET_EMB
-	while (1);
-#else
-	abort();
-#endif
+	OBNC_ExitTrap();
 }
 
 
@@ -74,7 +80,7 @@ void OBNC_Init(int argc, char *argv[])
 {
 	OBNC_argc = argc;
 	OBNC_argv = argv;
-	OBNC_handleTrap = OBNC_Abort;
+	OBNC_handleTrap = ExitTrapWithMessage;
 #if ! OBNC_CONFIG_TARGET_EMB
 	GC_INIT();
 #endif
@@ -109,7 +115,7 @@ void *OBNC_Allocate(size_t size, int kind)
 }
 
 
-OBNC_LONGI int OBNC_It1(OBNC_LONGI int i, OBNC_LONGI int n, const char file[], int line)
+OBNC_INTEGER OBNC_It1(OBNC_INTEGER i, OBNC_INTEGER n, const char file[], int line)
 {
 	if ((i < 0) || (i >= n)) {
 		OBNC_handleTrap(OBNC_ARRAY_INDEX_EXCEPTION, file, strlen(file) + 1, line);
@@ -118,16 +124,16 @@ OBNC_LONGI int OBNC_It1(OBNC_LONGI int i, OBNC_LONGI int n, const char file[], i
 }
 
 
-static OBNC_LONGI int Abs(OBNC_LONGI int x)
+static OBNC_INTEGER Abs(OBNC_INTEGER x)
 {
 	return (x >= 0)? x: -x;
 }
 
 
-void OBNC_WriteInt(OBNC_LONGI int x, OBNC_LONGI int n, FILE *f)
+void OBNC_WriteInt(OBNC_INTEGER x, OBNC_INTEGER n, FILE *f)
 {
 	int neg, i;
-	char buf[(CHAR_BIT * sizeof (OBNC_LONGI int) / 3) + 3];
+	char buf[(CHAR_BIT * sizeof (OBNC_INTEGER) / 3) + 3];
 
 	neg = x < 0;
 	i = 0;
@@ -151,9 +157,9 @@ void OBNC_WriteInt(OBNC_LONGI int x, OBNC_LONGI int n, FILE *f)
 }
 
 
-void OBNC_WriteHex(OBNC_LONGI unsigned int n, FILE *f)
+void OBNC_WriteHex(unsigned OBNC_INTEGER n, FILE *f)
 {
-	OBNC_LONGI unsigned d;
+	unsigned OBNC_INTEGER d;
 	char digits[2 * sizeof n];
 	int i;
 
@@ -179,67 +185,50 @@ void OBNC_Exit(int status)
 }
 
 
-int OBNC_Cmp(const char s[], OBNC_LONGI int sLen, const char t[], OBNC_LONGI int tLen)
+int OBNC_Cmp(const char s[], OBNC_INTEGER sLen, const char t[], OBNC_INTEGER tLen)
 {
-	return memcmp(s, t, (sLen < tLen)? sLen: tLen);
+	return strncmp(s, t, (sLen < tLen)? sLen: tLen);
 }
 
 
-OBNC_LONGI int OBNC_Div(OBNC_LONGI int x, OBNC_LONGI int y)
+OBNC_INTEGER OBNC_Div(OBNC_INTEGER x, OBNC_INTEGER y)
 {
 	return (x >= 0)? x / y: (x - OBNC_Mod(x, y)) / y;
 }
 
 
-OBNC_LONGI int OBNC_Mod(OBNC_LONGI int x, OBNC_LONGI int y)
+OBNC_INTEGER OBNC_Mod(OBNC_INTEGER x, OBNC_INTEGER y)
 {
 	return (x >= 0)? x % y: ((x % y) + y) % y;
 }
 
 
-OBNC_LONGI unsigned int OBNC_Range(OBNC_LONGI int m, OBNC_LONGI int n)
+unsigned OBNC_INTEGER OBNC_Range(OBNC_INTEGER m, OBNC_INTEGER n)
 {
-	return (m <= n)
-		? (((OBNC_LONGI unsigned int) -2) << n) ^ (((OBNC_LONGI unsigned int) -1) << m)
-		: 0x0u;
+	return (m <= n)?
+		(unsigned OBNC_INTEGER) ((((unsigned OBNC_INTEGER) -2) << n) ^ (((unsigned OBNC_INTEGER) -1) << m)):
+		(unsigned OBNC_INTEGER) 0x0u;
 }
 
 
-OBNC_LONGI int OBNC_Ror(OBNC_LONGI int x, OBNC_LONGI int n)
+OBNC_INTEGER OBNC_Ror(OBNC_INTEGER x, OBNC_INTEGER n)
 {
-	return (OBNC_LONGI int) (((OBNC_LONGI unsigned int) x >> n) | ((OBNC_LONGI unsigned int) x << (((OBNC_LONGI unsigned int) sizeof (OBNC_LONGI int) << 3) - (size_t) n)));
+	return (OBNC_INTEGER) (((unsigned OBNC_INTEGER) x >> n) | ((unsigned OBNC_INTEGER) x << (((unsigned OBNC_INTEGER) sizeof (OBNC_INTEGER) << 3) - (size_t) n)));
 }
 
 
-void OBNC_Pack(OBNC_LONGR double *x, OBNC_LONGI int n)
+void OBNC_Pack(OBNC_REAL *x, OBNC_INTEGER n)
 {
-#if OBNC_CONFIG_USE_LONG_REAL
-	*x = ldexpl(*x, (int) n);
-#else
-	*x = ldexp(*x, (int) n);
-#endif
+	*x = OBNC_REAL_SUFFIX(ldexp)(*x, (int) n);
 }
 
 
-void OBNC_Unpk(OBNC_LONGR double *x, OBNC_LONGI int *n)
+void OBNC_Unpk(OBNC_REAL *x, OBNC_INTEGER *n)
 {
-#if OBNC_CONFIG_USE_LONG_INT
 	int t;
-	#if OBNC_CONFIG_USE_LONG_REAL
-		*x = frexpl(*x, &t);
-	#else
-		*x = frexp(*x, &t);
-	#endif
-	*n = t;
+
+	*x = OBNC_REAL_SUFFIX(frexp)(*x, &t);
+	*n = (OBNC_INTEGER) t;
 	*x += *x;
 	(*n)--;
-#else
-	#if OBNC_CONFIG_USE_LONG_REAL
-		*x = frexpl(*x, n);
-	#else
-		*x = frexp(*x, n);
-	#endif
-	*x += *x;
-	(*n)--;
-#endif
 }

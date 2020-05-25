@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -19,22 +19,21 @@
 
 set -e
 
-if false; then
-	./InputTest >/dev/null &
-	pid="$!"
-	wid="$(xdotool search --sync --onlyvisible --pid "$pid")"
+./InputTest >/dev/null &
+pid="$!"
+wid="$(xdotool search --sync --onlyvisible --pid "$pid")"
 
-	xdotool key --window "$wid" k
-	xdotool key --window "$wid" space
-	xdotool key --window "$wid" dollar
+xdotool key --window "$wid" k
+xdotool key --window "$wid" space
+xdotool key --window "$wid" dollar
 
-	#save mouse position (X, Y and SCREEN)
-	eval "$(xdotool getmouselocation --shell)"
+#save mouse position (X, Y and SCREEN)
+eval "$(xdotool getmouselocation --shell)"
 
-	xdotool mousemove --window "$wid" 0 0 click 3
-	xdotool mousemove --window "$wid" 0 0 click 2
-	xdotool mousemove --window "$wid" 0 0 click 1
+xdotool mousemove --window "$wid" 0 0 click 3
+xdotool mousemove --window "$wid" 0 0 click 2
+xdotool mousemove --window "$wid" 0 0 click 1
 
-	#restore mouse position
-	xdotool mousemove --screen $SCREEN $X $Y
-fi
+#restore mouse position
+xdotool mousemove --screen $SCREEN $X $Y
+

@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -123,38 +123,27 @@ Implements the basic library module from "The Oakwood Guidelines for Oberon-2 Co
 
 	PROCEDURE Pos*(pattern, s: ARRAY OF CHAR; pos: INTEGER): INTEGER;
 (**Pos(pat, s, pos) returns the position of the first occurrence of pat in s. Searching starts at position pos (0 <= pos <= Length(s)). If pat is not found, -1 is returned.*)
-		VAR result, patLength, sLength: INTEGER;
-
-		PROCEDURE StartsWith(pattern: ARRAY OF CHAR; patLength: INTEGER; s: ARRAY OF CHAR; pos: INTEGER): BOOLEAN;
-			VAR i: INTEGER;
-		BEGIN
-			i := 0;
-			WHILE (i < patLength) & (pattern[i] = s[pos + i]) DO
-				INC(i)
-			END
-		RETURN i = patLength
-		END StartsWith;
-
+		VAR is, ip, result: INTEGER;
 	BEGIN
-		sLength := Length(s);
 		ASSERT(pos >= 0);
-		ASSERT(pos <= sLength);
-		result := -1;
-		IF pattern # "" THEN
-			patLength := Length(pattern);
-			DEC(pos);
-			REPEAT
-				INC(pos);
-				WHILE (pos + patLength <= sLength) & (s[pos] # pattern[0]) DO
-					INC(pos)
-				END
-			UNTIL (pos + patLength > sLength) OR StartsWith(pattern, patLength, s, pos);
-			IF pos + patLength <= sLength THEN
-				result := pos;
+		ASSERT(pos < LEN(s));
+		
+		is := pos - 1;
+		REPEAT
+			INC(is);
+			ip := 0;
+			WHILE (pattern[ip] # 0X) & (s[is + ip] = pattern[ip]) DO
+				INC(ip)
 			END
+		UNTIL (pattern[ip] = 0X) OR (s[is + ip] = 0X);
+
+		IF pattern[ip] = 0X THEN
+			result := is
+		ELSE
+			result := -1
 		END;
-		ASSERT(result >= -1);
-		ASSERT(result < sLength)
+
+		ASSERT((result = -1) OR (result >= 0) & (result + ip < LEN(s)))
 	RETURN result
 	END Pos;
 

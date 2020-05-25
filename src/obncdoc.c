@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -46,8 +46,10 @@ static void Apply(Applicator f, const char dirName[], Accumulator *acc) /*apply 
 	if (dir != NULL) {
 		file = readdir(dir);
 		while (file != NULL) {
-			filename = file->d_name;
-			f(filename, acc);
+			if ((strcmp(file->d_name, ".") != 0) && (strcmp(file->d_name, "..") != 0)) {
+				filename = file->d_name;
+				f(filename, acc);
+			}
 			file = readdir(dir);
 		}
 		error = closedir(dir);
@@ -109,9 +111,9 @@ static int IsOberonFile(const char filename[])
 }
 
 
-static const char *LibraryTitle(void)
+static const char *IndexTitle(void)
 {
-	return Util_String("Library %s", Paths_Basename(Paths_CurrentDir()));
+	return Util_String("Index of %s", Paths_Basename(Paths_CurrentDir()));
 }
 
 
@@ -150,7 +152,7 @@ static void CreateHtmlDefinition(const char module[], const char inputFile[], co
 		outFile = Files_New(outputFile);
 	}
 	PrintHtmlHeader(title, outFile);
-	fprintf(outFile, "		<p><a href='index.html'>%s</a></p>\n", LibraryTitle());
+	fprintf(outFile, "		<p><a href='index.html'>Index</a></p>\n");
 	fputc('\n', outFile);
 	fputs("		<pre>\n", outFile);
 	Files_Close(&outFile);
@@ -223,7 +225,7 @@ static void DeleteOrphanedDefinition(const char filename[], Accumulator *acc)
 		if (! Files_Exists(Util_String("%s.obn", module))
 				&& ! Files_Exists(Util_String("%s.Mod", module))
 				&& ! Files_Exists(Util_String("%s.mod", module))) {
-			Files_Remove(filename);
+			Files_Remove(Util_String("obncdoc/%s", filename));
 		}
 	}
 }
@@ -309,8 +311,8 @@ static void CreateIndex(void)
 	} else {
 		indexFile = Files_New(indexFilename);
 	}
-	PrintHtmlHeader(LibraryTitle(), indexFile);
-	fputs("		<p><a href='../index.html'>Library Index</a></p>\n", indexFile);
+	PrintHtmlHeader(IndexTitle(), indexFile);
+	fputs("		<p><a href='../index.html'>Index</a></p>\n", indexFile);
 	fputc('\n', indexFile);
 	fputs("		<pre>\n", indexFile);
 	for (i = 0; i < filenamesLen; i++) {
@@ -360,6 +362,7 @@ int main(int argc, char *argv[])
 	int i, helpWanted = 0, versionWanted = 0;
 	const char *arg;
 
+	Config_Init();
 	Error_Init();
 	Files_Init();
 	Util_Init();

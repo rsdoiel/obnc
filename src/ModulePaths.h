@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -22,6 +22,6 @@ void ModulePaths_Init(void);
 
 const char *ModulePaths_SourceFile(const char module[], const char dir[]);
 
-const char *ModulePaths_Directory(const char module[], const char relativeDir[]);
+const char *ModulePaths_Directory(const char module[], const char relativeDir[], int verbose);
 
 #endif

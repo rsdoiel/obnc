@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.3.2.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2019 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -40,11 +41,14 @@
    define necessary library symbols; they are noted "INFRINGES ON
    USER NAME SPACE" below.  */
 
+/* Undocumented macros, especially those whose name start with YY_,
+   are private implementation details.  Do not rely on them.  */
+
 /* Identify Bison output.  */
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.4"
+#define YYBISON_VERSION "3.3.2"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -61,8 +65,8 @@
 
 
 
-/* Copy the first part of user declarations.  */
-#line 18 "Oberon.y" /* yacc.c:339  */
+/* First part of user prologue.  */
+#line 18 "Oberon.y" /* yacc.c:337  */
 
 #include "Config.h"
 #include "Error.h"
@@ -93,6 +97,8 @@
 #define PARAM_SUBST_CONTEXT 1
 #define PROC_RESULT_CONTEXT 2
 
+static int initialized = 0;
+
 static const char *inputFilename;
 static int parseMode;
 static char *inputModuleName;
@@ -103,6 +109,9 @@ static Trees_Node recordDeclarationStack;
 static Trees_Node caseExpressionStack;
 static Trees_Node caseLabelsStack;
 static Trees_Node procedureDeclarationStack;
+
+void yyerror(const char msg[]);
+static void CheckUnusedIdentifiers(void);
 
 /*constant predicate functions*/
 
@@ -146,13 +155,16 @@ static void CheckCaseLabelUniqueness(Trees_Node label);
 
 static void ExportSymbolTable(const char symfilePath[]);
 
-#line 150 "y.tab.c" /* yacc.c:339  */
-
+#line 159 "y.tab.c" /* yacc.c:337  */
 # ifndef YY_NULLPTR
-#  if defined __cplusplus && 201103L <= __cplusplus
-#   define YY_NULLPTR nullptr
+#  if defined __cplusplus
+#   if 201103L <= __cplusplus
+#    define YY_NULLPTR nullptr
+#   else
+#    define YY_NULLPTR 0
+#   endif
 #  else
-#   define YY_NULLPTR 0
+#   define YY_NULLPTR ((void*)0)
 #  endif
 # endif
 
@@ -161,7 +173,7 @@ static void ExportSymbolTable(const char symfilePath[]);
 # undef YYERROR_VERBOSE
 # define YYERROR_VERBOSE 1
 #else
-# define YYERROR_VERBOSE 0
+# define YYERROR_VERBOSE 1
 #endif
 
 /* In a future release of Bison, this section will be replaced
@@ -276,15 +288,15 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 102 "Oberon.y" /* yacc.c:355  */
+#line 107 "Oberon.y" /* yacc.c:352  */
 
 	const char *ident;
-	OBNC_LONGI int integer;
-	OBNC_LONGR double real;
+	OBNC_INTEGER integer;
+	OBNC_REAL real;
 	const char *string;
 	Trees_Node node;
 
-#line 288 "y.tab.c" /* yacc.c:355  */
+#line 300 "y.tab.c" /* yacc.c:352  */
 };
 
 typedef union YYSTYPE YYSTYPE;
@@ -299,9 +311,7 @@ int yyparse (void);
 
 #endif /* !YY_YY_Y_TAB_H_INCLUDED  */
 
-/* Copy the second part of user declarations.  */
 
-#line 305 "y.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -322,13 +332,13 @@ typedef signed char yytype_int8;
 #ifdef YYTYPE_UINT16
 typedef YYTYPE_UINT16 yytype_uint16;
 #else
-typedef unsigned short int yytype_uint16;
+typedef unsigned short yytype_uint16;
 #endif
 
 #ifdef YYTYPE_INT16
 typedef YYTYPE_INT16 yytype_int16;
 #else
-typedef short int yytype_int16;
+typedef short yytype_int16;
 #endif
 
 #ifndef YYSIZE_T
@@ -340,7 +350,7 @@ typedef short int yytype_int16;
 #  include <stddef.h> /* INFRINGES ON USER NAME SPACE */
 #  define YYSIZE_T size_t
 # else
-#  define YYSIZE_T unsigned int
+#  define YYSIZE_T unsigned
 # endif
 #endif
 
@@ -376,15 +386,6 @@ typedef short int yytype_int16;
 # define YY_ATTRIBUTE_UNUSED YY_ATTRIBUTE ((__unused__))
 #endif
 
-#if !defined _Noreturn \
-     && (!defined __STDC_VERSION__ || __STDC_VERSION__ < 201112)
-# if defined _MSC_VER && 1200 <= _MSC_VER
-#  define _Noreturn __declspec (noreturn)
-# else
-#  define _Noreturn YY_ATTRIBUTE ((__noreturn__))
-# endif
-#endif
-
 /* Suppress unused-variable warnings by "using" E.  */
 #if ! defined lint || defined __GNUC__
 # define YYUSE(E) ((void) (E))
@@ -392,7 +393,7 @@ typedef short int yytype_int16;
 # define YYUSE(E) /* empty */
 #endif
 
-#if defined __GNUC__ && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
+#if defined __GNUC__ && ! defined __ICC && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
 /* Suppress an incorrect diagnostic about yylval being uninitialized.  */
 # define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN \
     _Pragma ("GCC diagnostic push") \
@@ -554,16 +555,16 @@ union yyalloc
 /* YYNSTATES -- Number of states.  */
 #define YYNSTATES  284
 
-/* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
-   by yylex, with out-of-bounds checking.  */
 #define YYUNDEFTOK  2
 #define YYMAXUTOK   300
 
+/* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
+   as returned by yylex, with out-of-bounds checking.  */
 #define YYTRANSLATE(YYX)                                                \
-  ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+  ((unsigned) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
 
 /* YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to TOKEN-NUM
-   as returned by yylex, without out-of-bounds checking.  */
+   as returned by yylex.  */
 static const yytype_uint8 yytranslate[] =
 {
        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -603,29 +604,29 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   216,   216,   220,   227,   245,   250,   259,   263,   273,
-     289,   304,   327,   337,   338,   339,   340,   341,   345,   365,
-     375,   379,   386,   406,   414,   425,   430,   436,   472,   478,
-     484,   488,   516,   565,   569,   579,   614,   623,   630,   637,
-     639,   648,   686,   687,   734,   738,   742,   746,   750,   754,
-     758,   762,   769,   791,   820,   824,   829,   835,   839,   843,
-     850,   851,   881,   885,   889,   893,   897,   904,   905,   909,
-     914,   918,   922,   928,   948,   953,   974,   994,  1013,  1019,
-    1027,  1045,  1050,  1055,  1062,  1066,  1073,  1074,  1087,  1107,
-    1131,  1136,  1150,  1151,  1152,  1153,  1154,  1155,  1156,  1158,
-    1164,  1207,  1225,  1233,  1241,  1252,  1275,  1288,  1293,  1299,
-    1304,  1310,  1331,  1369,  1377,  1392,  1398,  1404,  1408,  1424,
-    1433,  1480,  1489,  1503,  1588,  1595,  1600,  1606,  1621,  1639,
-    1665,  1676,  1694,  1703,  1752,  1773,  1788,  1793,  1799,  1804,
-    1810,  1814,  1815,  1819,  1820,  1824,  1836,  1842,  1849,  1850,
-    1854,  1855,  1859,  1860,  1864,  1865,  1869,  1876,  1882,  1888,
-    1893,  1926,  1946,  1952,  1971,  1976,  1982,  1986,  2007,  2023,
-    2028,  2037,  2063,  2077,  2084,  2092,  2128,  2136,  2147,  2222,
-    2227,  2233
+       0,   221,   221,   225,   232,   250,   255,   264,   268,   278,
+     294,   309,   332,   342,   343,   344,   345,   346,   350,   370,
+     380,   384,   391,   411,   419,   430,   435,   441,   482,   488,
+     494,   498,   526,   575,   579,   589,   624,   633,   640,   647,
+     649,   658,   696,   697,   744,   748,   752,   756,   760,   764,
+     768,   772,   779,   801,   830,   834,   839,   845,   849,   853,
+     860,   861,   891,   895,   899,   903,   907,   914,   915,   919,
+     924,   928,   932,   938,   958,   963,   984,  1004,  1023,  1029,
+    1037,  1055,  1060,  1065,  1072,  1076,  1083,  1084,  1097,  1117,
+    1141,  1146,  1160,  1161,  1162,  1163,  1164,  1165,  1166,  1168,
+    1174,  1217,  1235,  1243,  1251,  1262,  1285,  1298,  1303,  1309,
+    1314,  1320,  1341,  1379,  1387,  1402,  1408,  1414,  1418,  1434,
+    1443,  1490,  1499,  1513,  1598,  1605,  1610,  1616,  1631,  1649,
+    1675,  1686,  1704,  1713,  1763,  1784,  1799,  1804,  1810,  1815,
+    1821,  1825,  1826,  1830,  1831,  1835,  1847,  1853,  1860,  1861,
+    1865,  1866,  1870,  1871,  1875,  1876,  1880,  1887,  1893,  1899,
+    1904,  1937,  1957,  1963,  1982,  1987,  1993,  1997,  2018,  2034,
+    2039,  2048,  2075,  2089,  2096,  2104,  2140,  2148,  2159,  2234,
+    2239,  2245
 };
 #endif
 
-#if YYDEBUG || YYERROR_VERBOSE || 0
+#if YYDEBUG || YYERROR_VERBOSE || 1
 /* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
@@ -947,22 +948,22 @@ static const yytype_uint8 yyr2[] =
 
 #define YYRECOVERING()  (!!yyerrstatus)
 
-#define YYBACKUP(Token, Value)                                  \
-do                                                              \
-  if (yychar == YYEMPTY)                                        \
-    {                                                           \
-      yychar = (Token);                                         \
-      yylval = (Value);                                         \
-      YYPOPSTACK (yylen);                                       \
-      yystate = *yyssp;                                         \
-      goto yybackup;                                            \
-    }                                                           \
-  else                                                          \
-    {                                                           \
-      yyerror (YY_("syntax error: cannot back up")); \
-      YYERROR;                                                  \
-    }                                                           \
-while (0)
+#define YYBACKUP(Token, Value)                                    \
+  do                                                              \
+    if (yychar == YYEMPTY)                                        \
+      {                                                           \
+        yychar = (Token);                                         \
+        yylval = (Value);                                         \
+        YYPOPSTACK (yylen);                                       \
+        yystate = *yyssp;                                         \
+        goto yybackup;                                            \
+      }                                                           \
+    else                                                          \
+      {                                                           \
+        yyerror (YY_("syntax error: cannot back up")); \
+        YYERROR;                                                  \
+      }                                                           \
+  while (0)
 
 /* Error token number */
 #define YYTERROR        1
@@ -1002,37 +1003,37 @@ do {                                                                      \
 } while (0)
 
 
-/*----------------------------------------.
-| Print this symbol's value on YYOUTPUT.  |
-`----------------------------------------*/
+/*-----------------------------------.
+| Print this symbol's value on YYO.  |
+`-----------------------------------*/
 
 static void
-yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
+yy_symbol_value_print (FILE *yyo, int yytype, YYSTYPE const * const yyvaluep)
 {
-  FILE *yyo = yyoutput;
-  YYUSE (yyo);
+  FILE *yyoutput = yyo;
+  YYUSE (yyoutput);
   if (!yyvaluep)
     return;
 # ifdef YYPRINT
   if (yytype < YYNTOKENS)
-    YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
+    YYPRINT (yyo, yytoknum[yytype], *yyvaluep);
 # endif
   YYUSE (yytype);
 }
 
 
-/*--------------------------------.
-| Print this symbol on YYOUTPUT.  |
-`--------------------------------*/
+/*---------------------------.
+| Print this symbol on YYO.  |
+`---------------------------*/
 
 static void
-yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
+yy_symbol_print (FILE *yyo, int yytype, YYSTYPE const * const yyvaluep)
 {
-  YYFPRINTF (yyoutput, "%s %s (",
+  YYFPRINTF (yyo, "%s %s (",
              yytype < YYNTOKENS ? "token" : "nterm", yytname[yytype]);
 
-  yy_symbol_value_print (yyoutput, yytype, yyvaluep);
-  YYFPRINTF (yyoutput, ")");
+  yy_symbol_value_print (yyo, yytype, yyvaluep);
+  YYFPRINTF (yyo, ")");
 }
 
 /*------------------------------------------------------------------.
@@ -1066,7 +1067,7 @@ do {                                                            \
 static void
 yy_reduce_print (yytype_int16 *yyssp, YYSTYPE *yyvsp, int yyrule)
 {
-  unsigned long int yylno = yyrline[yyrule];
+  unsigned long yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
   int yyi;
   YYFPRINTF (stderr, "Reducing stack by rule %d (line %lu):\n",
@@ -1077,7 +1078,7 @@ yy_reduce_print (yytype_int16 *yyssp, YYSTYPE *yyvsp, int yyrule)
       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr,
                        yystos[yyssp[yyi + 1 - yynrhs]],
-                       &(yyvsp[(yyi + 1) - (yynrhs)])
+                       &yyvsp[(yyi + 1) - (yynrhs)]
                                               );
       YYFPRINTF (stderr, "\n");
     }
@@ -1181,7 +1182,10 @@ yytnamerr (char *yyres, const char *yystr)
           case '\\':
             if (*++yyp != '\\')
               goto do_not_strip_quotes;
-            /* Fall through.  */
+            else
+              goto append;
+
+          append:
           default:
             if (yyres)
               yyres[yyn] = *yyp;
@@ -1199,7 +1203,7 @@ yytnamerr (char *yyres, const char *yystr)
   if (! yyres)
     return yystrlen (yystr);
 
-  return yystpcpy (yyres, yystr) - yyres;
+  return (YYSIZE_T) (yystpcpy (yyres, yystr) - yyres);
 }
 # endif
 
@@ -1277,10 +1281,10 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
                 yyarg[yycount++] = yytname[yyx];
                 {
                   YYSIZE_T yysize1 = yysize + yytnamerr (YY_NULLPTR, yytname[yyx]);
-                  if (! (yysize <= yysize1
-                         && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+                  if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
+                    yysize = yysize1;
+                  else
                     return 2;
-                  yysize = yysize1;
                 }
               }
         }
@@ -1292,6 +1296,7 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
       case N:                               \
         yyformat = S;                       \
       break
+    default: /* Avoid compiler warnings. */
       YYCASE_(0, YY_("syntax error"));
       YYCASE_(1, YY_("syntax error, unexpected %s"));
       YYCASE_(2, YY_("syntax error, unexpected %s, expecting %s"));
@@ -1303,9 +1308,10 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
 
   {
     YYSIZE_T yysize1 = yysize + yystrlen (yyformat);
-    if (! (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+    if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
+      yysize = yysize1;
+    else
       return 2;
-    yysize = yysize1;
   }
 
   if (*yymsg_alloc < yysize)
@@ -1431,23 +1437,31 @@ yyparse (void)
   yychar = YYEMPTY; /* Cause a token to be read.  */
   goto yysetstate;
 
+
 /*------------------------------------------------------------.
-| yynewstate -- Push a new state, which is found in yystate.  |
+| yynewstate -- push a new state, which is found in yystate.  |
 `------------------------------------------------------------*/
- yynewstate:
+yynewstate:
   /* In all cases, when you get here, the value and location stacks
      have just been pushed.  So pushing a state here evens the stacks.  */
   yyssp++;
 
- yysetstate:
-  *yyssp = yystate;
+
+/*--------------------------------------------------------------------.
+| yynewstate -- set current state (the top of the stack) to yystate.  |
+`--------------------------------------------------------------------*/
+yysetstate:
+  *yyssp = (yytype_int16) yystate;
 
   if (yyss + yystacksize - 1 <= yyssp)
+#if !defined yyoverflow && !defined YYSTACK_RELOCATE
+    goto yyexhaustedlab;
+#else
     {
       /* Get the current used size of the three stacks, in elements.  */
-      YYSIZE_T yysize = yyssp - yyss + 1;
+      YYSIZE_T yysize = (YYSIZE_T) (yyssp - yyss + 1);
 
-#ifdef yyoverflow
+# if defined yyoverflow
       {
         /* Give user a chance to reallocate the stack.  Use copies of
            these so that the &'s don't force the real ones into
@@ -1463,14 +1477,10 @@ yyparse (void)
                     &yyss1, yysize * sizeof (*yyssp),
                     &yyvs1, yysize * sizeof (*yyvsp),
                     &yystacksize);
-
         yyss = yyss1;
         yyvs = yyvs1;
       }
-#else /* no yyoverflow */
-# ifndef YYSTACK_RELOCATE
-      goto yyexhaustedlab;
-# else
+# else /* defined YYSTACK_RELOCATE */
       /* Extend the stack our own way.  */
       if (YYMAXDEPTH <= yystacksize)
         goto yyexhaustedlab;
@@ -1486,22 +1496,22 @@ yyparse (void)
           goto yyexhaustedlab;
         YYSTACK_RELOCATE (yyss_alloc, yyss);
         YYSTACK_RELOCATE (yyvs_alloc, yyvs);
-#  undef YYSTACK_RELOCATE
+# undef YYSTACK_RELOCATE
         if (yyss1 != yyssa)
           YYSTACK_FREE (yyss1);
       }
 # endif
-#endif /* no yyoverflow */
 
       yyssp = yyss + yysize - 1;
       yyvsp = yyvs + yysize - 1;
 
       YYDPRINTF ((stderr, "Stack size increased to %lu\n",
-                  (unsigned long int) yystacksize));
+                  (unsigned long) yystacksize));
 
       if (yyss + yystacksize - 1 <= yyssp)
         YYABORT;
     }
+#endif /* !defined yyoverflow && !defined YYSTACK_RELOCATE */
 
   YYDPRINTF ((stderr, "Entering state %d\n", yystate));
 
@@ -1510,11 +1520,11 @@ yyparse (void)
 
   goto yybackup;
 
+
 /*-----------.
 | yybackup.  |
 `-----------*/
 yybackup:
-
   /* Do appropriate processing given the current state.  Read a
      lookahead token if we need one and don't already have one.  */
 
@@ -1587,7 +1597,7 @@ yydefault:
 
 
 /*-----------------------------.
-| yyreduce -- Do a reduction.  |
+| yyreduce -- do a reduction.  |
 `-----------------------------*/
 yyreduce:
   /* yyn is the number of a rule to reduce with.  */
@@ -1608,23 +1618,23 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 217 "Oberon.y" /* yacc.c:1646  */
+#line 222 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewIdent((yyvsp[0].ident));
 	}
-#line 1616 "y.tab.c" /* yacc.c:1646  */
+#line 1626 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 3:
-#line 221 "Oberon.y" /* yacc.c:1646  */
+#line 226 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewIdent(Util_String("%s.%s", (yyvsp[-2].ident), (yyvsp[0].ident)));
 	}
-#line 1624 "y.tab.c" /* yacc.c:1646  */
+#line 1634 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 4:
-#line 228 "Oberon.y" /* yacc.c:1646  */
+#line 233 "Oberon.y" /* yacc.c:1652  */
     {
 		if (! Table_LocallyDeclared((yyvsp[-1].ident)) || (recordDeclarationStack != NULL)) {
 			(yyval.node) = Trees_NewIdent((yyvsp[-1].ident));
@@ -1635,47 +1645,47 @@ yyreduce:
 				Trees_SetLocal((yyval.node));
 			}
 		} else {
-			yyerror("error: redeclaration of identifier: %s", (yyvsp[-1].ident));
+			Oberon_PrintError("error: redeclaration of identifier: %s", (yyvsp[-1].ident));
 			YYABORT;
 		}
 	}
-#line 1643 "y.tab.c" /* yacc.c:1646  */
+#line 1653 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 5:
-#line 246 "Oberon.y" /* yacc.c:1646  */
+#line 251 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = 1;
 	}
-#line 1651 "y.tab.c" /* yacc.c:1646  */
+#line 1661 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 6:
-#line 250 "Oberon.y" /* yacc.c:1646  */
+#line 255 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = 0;
 	}
-#line 1659 "y.tab.c" /* yacc.c:1646  */
+#line 1669 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 7:
-#line 260 "Oberon.y" /* yacc.c:1646  */
+#line 265 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewInteger((yyvsp[0].integer));
 	}
-#line 1667 "y.tab.c" /* yacc.c:1646  */
+#line 1677 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 8:
-#line 264 "Oberon.y" /* yacc.c:1646  */
+#line 269 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewReal((yyvsp[0].real));
 	}
-#line 1675 "y.tab.c" /* yacc.c:1646  */
+#line 1685 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 9:
-#line 274 "Oberon.y" /* yacc.c:1646  */
+#line 279 "Oberon.y" /* yacc.c:1652  */
     {
 		if (! (Trees_Exported((yyvsp[-2].node)) && Trees_Local((yyvsp[-2].node)))) {
 			Trees_SetKind(TREES_CONSTANT_KIND, (yyvsp[-2].node));
@@ -1684,28 +1694,28 @@ yyreduce:
 			Table_Put((yyvsp[-2].node));
 			Generate_ConstDeclaration((yyvsp[-2].node));
 		} else {
-			yyerror("error: cannot export local constant: %s", Trees_Name((yyvsp[-2].node)));
+			Oberon_PrintError("error: cannot export local constant: %s", Trees_Name((yyvsp[-2].node)));
 			YYABORT;
 		}
 	}
-#line 1692 "y.tab.c" /* yacc.c:1646  */
+#line 1702 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 10:
-#line 290 "Oberon.y" /* yacc.c:1646  */
+#line 295 "Oberon.y" /* yacc.c:1652  */
     {
 		if (IsConstExpression((yyvsp[0].node))) {
 			(yyval.node) = (yyvsp[0].node);
 		} else {
-			yyerror("error: constant expression expected");
+			Oberon_PrintError("error: constant expression expected");
 			YYABORT;
 		}
 	}
-#line 1705 "y.tab.c" /* yacc.c:1646  */
+#line 1715 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 11:
-#line 305 "Oberon.y" /* yacc.c:1646  */
+#line 310 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node sourceType;
 
@@ -1717,30 +1727,30 @@ yyreduce:
 				currentTypeIdentdef = NULL;
 				Generate_TypeDeclaration((yyvsp[-1].node));
 			} else {
-				yyerror("error: cannot export local type: %s", Trees_Name((yyvsp[-1].node)));
+				Oberon_PrintError("error: cannot export local type: %s", Trees_Name((yyvsp[-1].node)));
 				YYABORT;
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
 			YYABORT;
 		}
 	}
-#line 1729 "y.tab.c" /* yacc.c:1646  */
+#line 1739 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 12:
-#line 328 "Oberon.y" /* yacc.c:1646  */
+#line 333 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_SetKind(TREES_TYPE_KIND, (yyvsp[-1].node));
 		currentTypeIdentdef = (yyvsp[-1].node);
 		Table_Put((yyvsp[-1].node));
 		(yyval.node) = (yyvsp[-1].node);
 	}
-#line 1740 "y.tab.c" /* yacc.c:1646  */
+#line 1750 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 18:
-#line 346 "Oberon.y" /* yacc.c:1646  */
+#line 351 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node reversedLengths, length;
 
@@ -1753,72 +1763,72 @@ yyreduce:
 				reversedLengths = Trees_Right(reversedLengths);
 			} while (reversedLengths != NULL);
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
 			exit(EXIT_FAILURE);
 		}
 	}
-#line 1761 "y.tab.c" /* yacc.c:1646  */
+#line 1771 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 19:
-#line 366 "Oberon.y" /* yacc.c:1646  */
+#line 371 "Oberon.y" /* yacc.c:1652  */
     {
 		if ((currentTypeIdentdef != NULL) && (Trees_Type(currentTypeIdentdef) == NULL)) {
 			Trees_SetType(Trees_NewLeaf(ARRAY), currentTypeIdentdef); /*incomplete type*/
 		}
 		(yyval.node) = (yyvsp[-1].node);
 	}
-#line 1772 "y.tab.c" /* yacc.c:1646  */
+#line 1782 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 20:
-#line 376 "Oberon.y" /* yacc.c:1646  */
+#line 381 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(TREES_NOSYM, (yyvsp[0].node), NULL);
 	}
-#line 1780 "y.tab.c" /* yacc.c:1646  */
+#line 1790 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 21:
-#line 380 "Oberon.y" /* yacc.c:1646  */
+#line 385 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(TREES_NOSYM, (yyvsp[0].node), (yyvsp[-2].node));
 	}
-#line 1788 "y.tab.c" /* yacc.c:1646  */
+#line 1798 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 22:
-#line 387 "Oberon.y" /* yacc.c:1646  */
+#line 392 "Oberon.y" /* yacc.c:1652  */
     {
 		if (Types_IsInteger(Trees_Type((yyvsp[0].node)))) {
 			if (IsInteger((yyvsp[0].node))) {
 				if (Trees_Integer((yyvsp[0].node)) <= 0) {
-					yyerror("error: positive length expected: %" OBNC_INT_MOD "d", Trees_Integer((yyvsp[0].node)));
+					Oberon_PrintError("error: positive length expected: %" OBNC_INT_MOD "d", Trees_Integer((yyvsp[0].node)));
 					YYABORT;
 				}
 			} else {
-				yyerror("error: fully evaluated constant expression expected as increment");
+				Oberon_PrintError("error: fully evaluated constant expression expected as increment");
 				YYABORT;
 			}
 		} else {
-			yyerror("error: integer length expected");
+			Oberon_PrintError("error: integer length expected");
 			YYABORT;
 		}
 	}
-#line 1809 "y.tab.c" /* yacc.c:1646  */
+#line 1819 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 23:
-#line 407 "Oberon.y" /* yacc.c:1646  */
+#line 412 "Oberon.y" /* yacc.c:1652  */
     {
 		recordDeclarationStack = Trees_Right(recordDeclarationStack);
 		(yyval.node) = Types_NewRecord(Types_RecordBaseType((yyvsp[-2].node)), (yyvsp[-1].node));
 	}
-#line 1818 "y.tab.c" /* yacc.c:1646  */
+#line 1828 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 24:
-#line 415 "Oberon.y" /* yacc.c:1646  */
+#line 420 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Types_NewRecord((yyvsp[0].node), NULL);
 		if ((currentTypeIdentdef != NULL) && (Trees_Type(currentTypeIdentdef) == NULL)) {
@@ -1826,27 +1836,27 @@ yyreduce:
 		}
 		recordDeclarationStack = Trees_NewNode(TREES_NOSYM, (yyval.node), recordDeclarationStack);
 	}
-#line 1830 "y.tab.c" /* yacc.c:1646  */
+#line 1840 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 25:
-#line 426 "Oberon.y" /* yacc.c:1646  */
+#line 431 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = (yyvsp[-1].node);
 	}
-#line 1838 "y.tab.c" /* yacc.c:1646  */
+#line 1848 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 26:
-#line 430 "Oberon.y" /* yacc.c:1646  */
+#line 435 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 1846 "y.tab.c" /* yacc.c:1646  */
+#line 1856 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 27:
-#line 437 "Oberon.y" /* yacc.c:1646  */
+#line 442 "Oberon.y" /* yacc.c:1652  */
     {
 		const char *name;
 		Trees_Node symbol;
@@ -1858,57 +1868,62 @@ yyreduce:
 			if (Trees_Kind(symbol) == TREES_TYPE_KIND) {
 				if (symbol != currentTypeIdentdef) {
 					switch (Trees_Symbol(Types_Structure(symbol))) {
-						case RECORD:
 						case POINTER:
+							if (Types_Same(Types_PointerBaseType(symbol), currentTypeIdentdef)) {
+								Oberon_PrintError("error: self-referring base type: %s", name);
+								YYABORT;
+							}
+							/*fall through*/
+						case RECORD:
 							(yyval.node) = symbol;
 							break;
 						default:
-							yyerror("error: record or pointer base type expected: %s", name);
+							Oberon_PrintError("error: record or pointer base type expected: %s", name);
 							YYABORT;
 					}
 				} else {
-					yyerror("error: invalid base type: %s", name);
+					Oberon_PrintError("error: self-referring base type: %s", name);
 					YYABORT;
 				}
 			} else {
-				yyerror("error: type name expected: %s", name);
+				Oberon_PrintError("error: type name expected: %s", name);
 				YYABORT;
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", name);
+			Oberon_PrintError("error: undeclared identifier: %s", name);
 			YYABORT;
 		}
 	}
-#line 1883 "y.tab.c" /* yacc.c:1646  */
+#line 1898 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 28:
-#line 473 "Oberon.y" /* yacc.c:1646  */
+#line 483 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_ReverseList(&(yyvsp[0].node)); /*correct order*/
 		(yyval.node) = (yyvsp[0].node);
 	}
-#line 1892 "y.tab.c" /* yacc.c:1646  */
+#line 1907 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 29:
-#line 478 "Oberon.y" /* yacc.c:1646  */
+#line 488 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 1900 "y.tab.c" /* yacc.c:1646  */
+#line 1915 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 30:
-#line 485 "Oberon.y" /* yacc.c:1646  */
+#line 495 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(TREES_FIELD_LIST_SEQUENCE, (yyvsp[0].node), NULL);
 	}
-#line 1908 "y.tab.c" /* yacc.c:1646  */
+#line 1923 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 31:
-#line 489 "Oberon.y" /* yacc.c:1646  */
+#line 499 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node currSeq, currList, currSeqList;
 		const char *seqIdentName, *listIdentName;
@@ -1922,7 +1937,7 @@ yyreduce:
 				while (currSeqList != NULL) {
 					seqIdentName = Trees_Name(Trees_Left(currSeqList));
 					if (strcmp(listIdentName, seqIdentName) == 0) {
-						yyerror("error: redeclaration of field: %s", listIdentName);
+						Oberon_PrintError("error: redeclaration of field: %s", listIdentName);
 						YYABORT;
 					}
 					currSeqList = Trees_Right(currSeqList);
@@ -1933,11 +1948,11 @@ yyreduce:
 		}
 		(yyval.node) = Trees_NewNode(TREES_FIELD_LIST_SEQUENCE, (yyvsp[0].node), (yyvsp[-2].node));
 	}
-#line 1937 "y.tab.c" /* yacc.c:1646  */
+#line 1952 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 32:
-#line 517 "Oberon.y" /* yacc.c:1646  */
+#line 527 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node type, tail, ident, p, directBaseType, baseTypeField, baseType;
 
@@ -1963,11 +1978,11 @@ yyreduce:
 							Trees_SetKind(TREES_FIELD_KIND, ident);
 							Trees_SetType(type, ident);
 						} else {
-							yyerror("error: redeclaration of field: %s defined in %s", Trees_Name(ident), Trees_Name(baseType));
+							Oberon_PrintError("error: redeclaration of field: %s defined in %s", Trees_Name(ident), Trees_Name(baseType));
 							YYABORT;
 						}
 					} else {
-						yyerror("error: redeclaration of field: %s", Trees_Name(ident));
+						Oberon_PrintError("error: redeclaration of field: %s", Trees_Name(ident));
 						YYABORT;
 					}
 					tail = Trees_Right(tail);
@@ -1975,38 +1990,38 @@ yyreduce:
 
 				(yyval.node) = (yyvsp[-2].node);
 			} else {
-				yyerror("error: recursive field type must be a pointer: %s", Trees_Name((yyvsp[0].node)));
+				Oberon_PrintError("error: recursive field type must be a pointer: %s", Trees_Name((yyvsp[0].node)));
 				YYABORT;
 			}
 		} else {
-			yyerror("error: undeclared type: %s", Trees_Name((yyvsp[0].node)));
+			Oberon_PrintError("error: undeclared type: %s", Trees_Name((yyvsp[0].node)));
 			YYABORT;
 		}
 	}
-#line 1987 "y.tab.c" /* yacc.c:1646  */
+#line 2002 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 33:
-#line 566 "Oberon.y" /* yacc.c:1646  */
+#line 576 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(TREES_IDENT_LIST, (yyvsp[0].node), NULL);
 	}
-#line 1995 "y.tab.c" /* yacc.c:1646  */
+#line 2010 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 34:
-#line 570 "Oberon.y" /* yacc.c:1646  */
+#line 580 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node reversedIdents;
 
 		reversedIdents = Trees_NewNode(TREES_IDENT_LIST, (yyvsp[0].node), (yyvsp[-2].node));
 		(yyval.node) = reversedIdents;
 	}
-#line 2006 "y.tab.c" /* yacc.c:1646  */
+#line 2021 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 35:
-#line 580 "Oberon.y" /* yacc.c:1646  */
+#line 590 "Oberon.y" /* yacc.c:1652  */
     {
 		const char *baseTypeName;
 		Trees_Node declaredBaseType;
@@ -2019,7 +2034,7 @@ yyreduce:
 				if (Types_IsRecord(declaredBaseType)) {
 					(yyval.node) = Types_NewPointer(declaredBaseType);
 				} else {
-					yyerror("error: record expected as pointer base type: %s", baseTypeName);
+					Oberon_PrintError("error: record expected as pointer base type: %s", baseTypeName);
 					YYABORT;
 				}
 			} else if (currentTypeIdentdef != NULL) {
@@ -2028,55 +2043,55 @@ yyreduce:
 				(yyval.node) = Types_NewPointer((yyvsp[0].node));
 				unresolvedPointerTypes = Trees_NewNode(TREES_NOSYM, (yyval.node), unresolvedPointerTypes);
 			} else {
-				yyerror("error: undeclared type: %s", baseTypeName);
+				Oberon_PrintError("error: undeclared type: %s", baseTypeName);
 				YYABORT;
 			}
 		} else if(Trees_Symbol((yyvsp[0].node)) == RECORD) {
 			(yyval.node) = Types_NewPointer((yyvsp[0].node));
 		} else {
-			yyerror("error: record expected as pointer base type");
+			Oberon_PrintError("error: record expected as pointer base type");
 			YYABORT;
 		}
 	}
-#line 2042 "y.tab.c" /* yacc.c:1646  */
+#line 2057 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 36:
-#line 615 "Oberon.y" /* yacc.c:1646  */
+#line 625 "Oberon.y" /* yacc.c:1652  */
     {
 		if ((currentTypeIdentdef != NULL) && (Trees_Type(currentTypeIdentdef) == NULL)) {
 			Trees_SetType(Types_NewPointer(NULL), currentTypeIdentdef); /*incomplete type*/
 		}
 	}
-#line 2052 "y.tab.c" /* yacc.c:1646  */
+#line 2067 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 37:
-#line 624 "Oberon.y" /* yacc.c:1646  */
+#line 634 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = (yyvsp[0].node);
 	}
-#line 2060 "y.tab.c" /* yacc.c:1646  */
+#line 2075 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 38:
-#line 631 "Oberon.y" /* yacc.c:1646  */
+#line 641 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 2068 "y.tab.c" /* yacc.c:1646  */
+#line 2083 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 40:
-#line 639 "Oberon.y" /* yacc.c:1646  */
+#line 649 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewLeaf(PROCEDURE);
 	}
-#line 2076 "y.tab.c" /* yacc.c:1646  */
+#line 2091 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 41:
-#line 649 "Oberon.y" /* yacc.c:1646  */
+#line 659 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node type, identList, ident;
 
@@ -2092,11 +2107,11 @@ yyreduce:
 						Trees_SetType(type, ident);
 						Table_Put(ident);
 					} else {
-						yyerror("error: redeclaration of identifier with the same name: %s", Trees_Name(ident));
+						Oberon_PrintError("error: redeclaration of identifier with the same name: %s", Trees_Name(ident));
 						YYABORT;
 					}
 				} else {
-					yyerror("error: cannot export local variable: %s", Trees_Name(ident));
+					Oberon_PrintError("error: cannot export local variable: %s", Trees_Name(ident));
 					YYABORT;
 				}
 				identList = Trees_Right(identList);
@@ -2104,15 +2119,15 @@ yyreduce:
 
 			Generate_VariableDeclaration((yyvsp[-2].node));
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
 			exit(EXIT_FAILURE);
 		}
 	}
-#line 2112 "y.tab.c" /* yacc.c:1646  */
+#line 2127 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 43:
-#line 688 "Oberon.y" /* yacc.c:1646  */
+#line 698 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node expA, expB, typeA, typeB;
 		int op = (int) (yyvsp[-1].integer);
@@ -2129,11 +2144,11 @@ yyreduce:
 					expB = BaseIdent((yyvsp[0].node));
 					typeB = BaseIdent((yyvsp[0].node));
 				} else {
-					yyerror("error: variable parameter expected as first operand of IS");
+					Oberon_PrintError("error: variable parameter expected as first operand of IS");
 					YYABORT;
 				}
 			} else {
-				yyerror("error: identifier expected as first operand of IS");
+				Oberon_PrintError("error: identifier expected as first operand of IS");
 				YYABORT;
 			}
 		} else {
@@ -2151,80 +2166,80 @@ yyreduce:
 				Trees_SetType(Trees_NewLeaf(TREES_BOOLEAN_TYPE), (yyval.node));
 			}
 		} else {
-			yyerror("error: incompatible types in relation \"%s\": %s, %s",
+			Oberon_PrintError("error: incompatible types in relation \"%s\": %s, %s",
 				OperatorString(op), TypeString(typeA), TypeString(typeB));
 			YYABORT;
 		}
 	}
-#line 2160 "y.tab.c" /* yacc.c:1646  */
+#line 2175 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 44:
-#line 735 "Oberon.y" /* yacc.c:1646  */
+#line 745 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '=';
 	}
-#line 2168 "y.tab.c" /* yacc.c:1646  */
+#line 2183 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 45:
-#line 739 "Oberon.y" /* yacc.c:1646  */
+#line 749 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '#';
 	}
-#line 2176 "y.tab.c" /* yacc.c:1646  */
+#line 2191 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 46:
-#line 743 "Oberon.y" /* yacc.c:1646  */
+#line 753 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '<';
 	}
-#line 2184 "y.tab.c" /* yacc.c:1646  */
+#line 2199 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 47:
-#line 747 "Oberon.y" /* yacc.c:1646  */
+#line 757 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = LE;
 	}
-#line 2192 "y.tab.c" /* yacc.c:1646  */
+#line 2207 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 48:
-#line 751 "Oberon.y" /* yacc.c:1646  */
+#line 761 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '>';
 	}
-#line 2200 "y.tab.c" /* yacc.c:1646  */
+#line 2215 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 49:
-#line 755 "Oberon.y" /* yacc.c:1646  */
+#line 765 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = GE;
 	}
-#line 2208 "y.tab.c" /* yacc.c:1646  */
+#line 2223 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 50:
-#line 759 "Oberon.y" /* yacc.c:1646  */
+#line 769 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = IN;
 	}
-#line 2216 "y.tab.c" /* yacc.c:1646  */
+#line 2231 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 51:
-#line 763 "Oberon.y" /* yacc.c:1646  */
+#line 773 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = IS;
 	}
-#line 2224 "y.tab.c" /* yacc.c:1646  */
+#line 2239 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 52:
-#line 770 "Oberon.y" /* yacc.c:1646  */
+#line 780 "Oberon.y" /* yacc.c:1652  */
     {
 		int op = (int) (yyvsp[-1].integer);
 		(yyval.node) = (yyvsp[0].node);
@@ -2241,16 +2256,16 @@ yyreduce:
 					}
 				}
 			} else {
-				yyerror("error: incompatible type in unary operation \"%s\": %s", OperatorString(op), TypeString(Trees_Type((yyvsp[0].node))));
+				Oberon_PrintError("error: incompatible type in unary operation \"%s\": %s", OperatorString(op), TypeString(Trees_Type((yyvsp[0].node))));
 				YYABORT;
 			}
 		}
 	}
-#line 2250 "y.tab.c" /* yacc.c:1646  */
+#line 2265 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 53:
-#line 792 "Oberon.y" /* yacc.c:1646  */
+#line 802 "Oberon.y" /* yacc.c:1652  */
     {
 		int op = (int) (yyvsp[-1].integer);
 
@@ -2270,65 +2285,65 @@ yyreduce:
 				}
 			}
 		} else {
-			yyerror("error: incompatible types in operation \"%s\": %s, %s",
+			Oberon_PrintError("error: incompatible types in operation \"%s\": %s, %s",
 				OperatorString(op), TypeString(Trees_Type((yyvsp[-2].node))), TypeString(Trees_Type((yyvsp[0].node))));
 			YYABORT;
 		}
 		assert((yyval.node) != NULL);
 	}
-#line 2280 "y.tab.c" /* yacc.c:1646  */
+#line 2295 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 54:
-#line 821 "Oberon.y" /* yacc.c:1646  */
+#line 831 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '+';
 	}
-#line 2288 "y.tab.c" /* yacc.c:1646  */
+#line 2303 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 55:
-#line 825 "Oberon.y" /* yacc.c:1646  */
+#line 835 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '-';
 	}
-#line 2296 "y.tab.c" /* yacc.c:1646  */
+#line 2311 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 56:
-#line 829 "Oberon.y" /* yacc.c:1646  */
+#line 839 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = -1;
 	}
-#line 2304 "y.tab.c" /* yacc.c:1646  */
+#line 2319 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 57:
-#line 836 "Oberon.y" /* yacc.c:1646  */
+#line 846 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '+';
 	}
-#line 2312 "y.tab.c" /* yacc.c:1646  */
+#line 2327 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 58:
-#line 840 "Oberon.y" /* yacc.c:1646  */
+#line 850 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '-';
 	}
-#line 2320 "y.tab.c" /* yacc.c:1646  */
+#line 2335 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 59:
-#line 844 "Oberon.y" /* yacc.c:1646  */
+#line 854 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = OR;
 	}
-#line 2328 "y.tab.c" /* yacc.c:1646  */
+#line 2343 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 61:
-#line 852 "Oberon.y" /* yacc.c:1646  */
+#line 862 "Oberon.y" /* yacc.c:1652  */
     {
 		int op = (int) (yyvsp[-1].integer);
 
@@ -2348,100 +2363,100 @@ yyreduce:
 				}
 			}
 		} else {
-			yyerror("error: incompatible types in operation \"%s\": %s, %s",
+			Oberon_PrintError("error: incompatible types in operation \"%s\": %s, %s",
 				OperatorString(op), TypeString(Trees_Type((yyvsp[-2].node))), TypeString(Trees_Type((yyvsp[0].node))));
 			YYABORT;
 		}
 
 		assert((yyval.node) != NULL);
 	}
-#line 2359 "y.tab.c" /* yacc.c:1646  */
+#line 2374 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 62:
-#line 882 "Oberon.y" /* yacc.c:1646  */
+#line 892 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '*';
 	}
-#line 2367 "y.tab.c" /* yacc.c:1646  */
+#line 2382 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 63:
-#line 886 "Oberon.y" /* yacc.c:1646  */
+#line 896 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '/';
 	}
-#line 2375 "y.tab.c" /* yacc.c:1646  */
+#line 2390 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 64:
-#line 890 "Oberon.y" /* yacc.c:1646  */
+#line 900 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = DIV;
 	}
-#line 2383 "y.tab.c" /* yacc.c:1646  */
+#line 2398 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 65:
-#line 894 "Oberon.y" /* yacc.c:1646  */
+#line 904 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = MOD;
 	}
-#line 2391 "y.tab.c" /* yacc.c:1646  */
+#line 2406 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 66:
-#line 898 "Oberon.y" /* yacc.c:1646  */
+#line 908 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = '&';
 	}
-#line 2399 "y.tab.c" /* yacc.c:1646  */
+#line 2414 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 68:
-#line 906 "Oberon.y" /* yacc.c:1646  */
+#line 916 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewString((yyvsp[0].string));
 	}
-#line 2407 "y.tab.c" /* yacc.c:1646  */
+#line 2422 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 69:
-#line 910 "Oberon.y" /* yacc.c:1646  */
+#line 920 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewLeaf(NIL);
 		Trees_SetType(Trees_NewLeaf(TREES_NIL_TYPE), (yyval.node));
 	}
-#line 2416 "y.tab.c" /* yacc.c:1646  */
+#line 2431 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 70:
-#line 915 "Oberon.y" /* yacc.c:1646  */
+#line 925 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewBoolean(1);
 	}
-#line 2424 "y.tab.c" /* yacc.c:1646  */
+#line 2439 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 71:
-#line 919 "Oberon.y" /* yacc.c:1646  */
+#line 929 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewBoolean(0);
 	}
-#line 2432 "y.tab.c" /* yacc.c:1646  */
+#line 2447 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 72:
-#line 923 "Oberon.y" /* yacc.c:1646  */
+#line 933 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = (yyvsp[0].node);
 		Trees_SetType(Trees_NewLeaf(TREES_SET_TYPE), (yyval.node));
 	}
-#line 2441 "y.tab.c" /* yacc.c:1646  */
+#line 2456 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 73:
-#line 929 "Oberon.y" /* yacc.c:1646  */
+#line 939 "Oberon.y" /* yacc.c:1652  */
     {
 		const int isFunctionCall = 1;
 		Trees_Node designator, actualParameters, ident;
@@ -2461,20 +2476,20 @@ yyreduce:
 		}
 		assert((yyval.node) != NULL);
 	}
-#line 2465 "y.tab.c" /* yacc.c:1646  */
+#line 2480 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 74:
-#line 949 "Oberon.y" /* yacc.c:1646  */
+#line 959 "Oberon.y" /* yacc.c:1652  */
     {
 		CheckIsValueExpression((yyvsp[-1].node));
 		(yyval.node) = (yyvsp[-1].node);
 	}
-#line 2474 "y.tab.c" /* yacc.c:1646  */
+#line 2489 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 75:
-#line 954 "Oberon.y" /* yacc.c:1646  */
+#line 964 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 		CheckIsValueExpression((yyvsp[0].node));
@@ -2486,16 +2501,16 @@ yyreduce:
 				Trees_SetType(Trees_NewLeaf(TREES_BOOLEAN_TYPE), (yyval.node));
 			}
 		} else {
-			yyerror("error: incompatible type in operation \"~\": %s", TypeString(Trees_Type((yyvsp[0].node))));
+			Oberon_PrintError("error: incompatible type in operation \"~\": %s", TypeString(Trees_Type((yyvsp[0].node))));
 			YYABORT;
 		}
 		assert((yyval.node) != NULL);
 	}
-#line 2495 "y.tab.c" /* yacc.c:1646  */
+#line 2510 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 76:
-#line 975 "Oberon.y" /* yacc.c:1646  */
+#line 985 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node designator, identType, actualParameters;
 		int parameterListFound; /*possibly empty*/
@@ -2512,11 +2527,11 @@ yyreduce:
 			(yyval.node) = designator;
 		}
 	}
-#line 2516 "y.tab.c" /* yacc.c:1646  */
+#line 2531 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 77:
-#line 995 "Oberon.y" /* yacc.c:1646  */
+#line 1005 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node curr;
 
@@ -2534,19 +2549,19 @@ yyreduce:
 			(yyval.node) = Trees_NewNode(Trees_Symbol((yyvsp[0].node)), Trees_Left((yyvsp[0].node)), (yyvsp[-1].node));
 		}
 	}
-#line 2538 "y.tab.c" /* yacc.c:1646  */
+#line 2553 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 78:
-#line 1013 "Oberon.y" /* yacc.c:1646  */
+#line 1023 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 2546 "y.tab.c" /* yacc.c:1646  */
+#line 2561 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 79:
-#line 1020 "Oberon.y" /* yacc.c:1646  */
+#line 1030 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node field;
 
@@ -2554,11 +2569,11 @@ yyreduce:
 		Trees_SetKind(TREES_FIELD_KIND, field);
 		(yyval.node) = Trees_NewNode('.', field, NULL);
 	}
-#line 2558 "y.tab.c" /* yacc.c:1646  */
+#line 2573 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 80:
-#line 1028 "Oberon.y" /* yacc.c:1646  */
+#line 1038 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node curr, exp;
 
@@ -2570,58 +2585,58 @@ yyreduce:
 			if (Types_IsInteger(Trees_Type(exp))) {
 				(yyval.node) = Trees_NewNode('[', Trees_Left(curr), (yyval.node));
 			} else {
-				yyerror("error: integer array index expected");
+				Oberon_PrintError("error: integer array index expected");
 				YYABORT;
 			}
 			curr = Trees_Right(curr);
 		} while (curr != NULL);
 	}
-#line 2580 "y.tab.c" /* yacc.c:1646  */
+#line 2595 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 81:
-#line 1046 "Oberon.y" /* yacc.c:1646  */
+#line 1056 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode('^', NULL, NULL);
 	}
-#line 2588 "y.tab.c" /* yacc.c:1646  */
+#line 2603 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 82:
-#line 1051 "Oberon.y" /* yacc.c:1646  */
+#line 1061 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_ReverseList(&(yyvsp[-1].node)); /*correct order*/
 		(yyval.node) = Trees_NewNode('(', (yyvsp[-1].node), NULL);
 	}
-#line 2597 "y.tab.c" /* yacc.c:1646  */
+#line 2612 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 83:
-#line 1056 "Oberon.y" /* yacc.c:1646  */
+#line 1066 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode('(', NULL, NULL);
 	}
-#line 2605 "y.tab.c" /* yacc.c:1646  */
+#line 2620 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 84:
-#line 1063 "Oberon.y" /* yacc.c:1646  */
+#line 1073 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewSet(0x0u);
 	}
-#line 2613 "y.tab.c" /* yacc.c:1646  */
+#line 2628 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 85:
-#line 1067 "Oberon.y" /* yacc.c:1646  */
+#line 1077 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = (yyvsp[-1].node);
 	}
-#line 2621 "y.tab.c" /* yacc.c:1646  */
+#line 2636 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 87:
-#line 1075 "Oberon.y" /* yacc.c:1646  */
+#line 1085 "Oberon.y" /* yacc.c:1652  */
     {
 		if ((Trees_Symbol((yyvsp[-2].node)) == TREES_SET_CONSTANT)
 				&& (Trees_Symbol((yyvsp[0].node)) == TREES_SET_CONSTANT)) {
@@ -2631,13 +2646,13 @@ yyreduce:
 			Trees_SetType(Trees_NewLeaf(TREES_SET_TYPE), (yyval.node));
 		}
 	}
-#line 2635 "y.tab.c" /* yacc.c:1646  */
+#line 2650 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 88:
-#line 1088 "Oberon.y" /* yacc.c:1646  */
+#line 1098 "Oberon.y" /* yacc.c:1652  */
     {
-		OBNC_LONGI int i;
+		OBNC_INTEGER i;
 		Trees_Node type;
 
 		CheckIsValueExpression((yyvsp[0].node));
@@ -2651,15 +2666,15 @@ yyreduce:
 			(yyval.node) = Trees_NewNode(TREES_SINGLE_ELEMENT_SET, (yyvsp[0].node), NULL);
 			Trees_SetType(Trees_NewLeaf(TREES_SET_TYPE), (yyval.node));
 		} else {
-			yyerror("error: element must have integer type");
+			Oberon_PrintError("error: element must have integer type");
 			YYABORT;
 		}
 	}
-#line 2659 "y.tab.c" /* yacc.c:1646  */
+#line 2674 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 89:
-#line 1108 "Oberon.y" /* yacc.c:1646  */
+#line 1118 "Oberon.y" /* yacc.c:1652  */
     {
 		CheckIsValueExpression((yyvsp[-2].node));
 		CheckIsValueExpression((yyvsp[0].node));
@@ -2676,24 +2691,24 @@ yyreduce:
 			(yyval.node) = Trees_NewNode(TREES_RANGE_SET, (yyvsp[-2].node), (yyvsp[0].node));
 			Trees_SetType(Trees_NewLeaf(TREES_SET_TYPE), (yyval.node));
 		} else {
-			yyerror("error: element must have integer type");
+			Oberon_PrintError("error: element must have integer type");
 			YYABORT;
 		}
 	}
-#line 2684 "y.tab.c" /* yacc.c:1646  */
+#line 2699 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 90:
-#line 1132 "Oberon.y" /* yacc.c:1646  */
+#line 1142 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(TREES_EXP_LIST, (yyvsp[0].node), NULL);
 		Trees_SetType(Trees_Type((yyvsp[0].node)), (yyval.node));
 	}
-#line 2693 "y.tab.c" /* yacc.c:1646  */
+#line 2708 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 91:
-#line 1137 "Oberon.y" /* yacc.c:1646  */
+#line 1147 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node reversedList;
 
@@ -2701,19 +2716,19 @@ yyreduce:
 		(yyval.node) = reversedList;
 		Trees_SetType(Trees_Type((yyvsp[0].node)), (yyval.node));
 	}
-#line 2705 "y.tab.c" /* yacc.c:1646  */
+#line 2720 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 99:
-#line 1158 "Oberon.y" /* yacc.c:1646  */
+#line 1168 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 2713 "y.tab.c" /* yacc.c:1646  */
+#line 2728 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 100:
-#line 1165 "Oberon.y" /* yacc.c:1646  */
+#line 1175 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node designator, ident, designatorType, exp;
 
@@ -2734,29 +2749,29 @@ yyreduce:
 								exp = Trees_NewChar(Trees_String(exp)[0]);
 							}
 						} else {
-							yyerror("error: assignment to read-only variable");
+							Oberon_PrintError("error: assignment to read-only variable");
 							YYABORT;
 						}
 						break;
 					default:
-						yyerror("error: assignment to non-variable");
+						Oberon_PrintError("error: assignment to non-variable");
 						YYABORT;
 				}
 				(yyval.node) = Trees_NewNode(BECOMES, designator, exp);
 				break;
 			case TREES_PROCEDURE_CALL:
-				yyerror("error: unexpected procedure call in assignment target");
+				Oberon_PrintError("error: unexpected procedure call in assignment target");
 				YYABORT;
 				break;
 			default:
 				assert(0);
 		}
 	}
-#line 2756 "y.tab.c" /* yacc.c:1646  */
+#line 2771 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 101:
-#line 1208 "Oberon.y" /* yacc.c:1646  */
+#line 1218 "Oberon.y" /* yacc.c:1652  */
     {
 		const int isFunctionCall = 0;
 		Trees_Node designator, actualParameters;
@@ -2771,20 +2786,20 @@ yyreduce:
 		HandleProcedureCall(designator, actualParameters, isFunctionCall, &(yyval.node));
 		assert((yyval.node) != NULL);
 	}
-#line 2775 "y.tab.c" /* yacc.c:1646  */
+#line 2790 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 102:
-#line 1226 "Oberon.y" /* yacc.c:1646  */
+#line 1236 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_ReverseList(&(yyvsp[0].node)); /*correct order*/
 		(yyval.node) = (yyvsp[0].node);
 	}
-#line 2784 "y.tab.c" /* yacc.c:1646  */
+#line 2799 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 103:
-#line 1234 "Oberon.y" /* yacc.c:1646  */
+#line 1244 "Oberon.y" /* yacc.c:1652  */
     {
 		if ((yyvsp[0].node) == NULL) {
 			(yyval.node) = NULL;
@@ -2792,11 +2807,11 @@ yyreduce:
 			(yyval.node) = Trees_NewNode(TREES_STATEMENT_SEQUENCE, (yyvsp[0].node), NULL);
 		}
 	}
-#line 2796 "y.tab.c" /* yacc.c:1646  */
+#line 2811 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 104:
-#line 1242 "Oberon.y" /* yacc.c:1646  */
+#line 1252 "Oberon.y" /* yacc.c:1652  */
     {
 		if ((yyvsp[0].node) != NULL) {
 			(yyval.node) = Trees_NewNode(TREES_STATEMENT_SEQUENCE, (yyvsp[0].node), (yyvsp[-2].node));
@@ -2804,11 +2819,11 @@ yyreduce:
 			(yyval.node) = (yyvsp[-2].node);
 		}
 	}
-#line 2808 "y.tab.c" /* yacc.c:1646  */
+#line 2823 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 105:
-#line 1253 "Oberon.y" /* yacc.c:1646  */
+#line 1263 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node currElsif, currExp, currThen, currStmt;
 
@@ -2828,57 +2843,57 @@ yyreduce:
 			(yyval.node) = Trees_NewNode(IF, (yyvsp[-5].node), Trees_NewNode(THEN, (yyvsp[-3].node), (yyval.node)));
 		}
 	}
-#line 2832 "y.tab.c" /* yacc.c:1646  */
+#line 2847 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 106:
-#line 1276 "Oberon.y" /* yacc.c:1646  */
+#line 1286 "Oberon.y" /* yacc.c:1652  */
     {
 		CheckIsValueExpression((yyvsp[0].node));
 		if (Types_IsBoolean(Trees_Type((yyvsp[0].node)))) {
 			(yyval.node) = (yyvsp[0].node);
 		} else {
-			yyerror("error: boolean expression expected");
+			Oberon_PrintError("error: boolean expression expected");
 			YYABORT;
 		}
 	}
-#line 2846 "y.tab.c" /* yacc.c:1646  */
+#line 2861 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 107:
-#line 1289 "Oberon.y" /* yacc.c:1646  */
+#line 1299 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(ELSIF, (yyvsp[-2].node), Trees_NewNode(THEN, (yyvsp[0].node), (yyvsp[-4].node)));
 	}
-#line 2854 "y.tab.c" /* yacc.c:1646  */
+#line 2869 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 108:
-#line 1293 "Oberon.y" /* yacc.c:1646  */
+#line 1303 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 2862 "y.tab.c" /* yacc.c:1646  */
+#line 2877 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 109:
-#line 1300 "Oberon.y" /* yacc.c:1646  */
+#line 1310 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(ELSE, (yyvsp[0].node), NULL);
 	}
-#line 2870 "y.tab.c" /* yacc.c:1646  */
+#line 2885 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 110:
-#line 1304 "Oberon.y" /* yacc.c:1646  */
+#line 1314 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 2878 "y.tab.c" /* yacc.c:1646  */
+#line 2893 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 111:
-#line 1311 "Oberon.y" /* yacc.c:1646  */
+#line 1321 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node expType, caseVariable;
 
@@ -2896,11 +2911,11 @@ yyreduce:
 		}
 		(yyval.node) = Trees_NewNode(CASE, (yyvsp[-3].node), (yyvsp[-1].node));
 	}
-#line 2900 "y.tab.c" /* yacc.c:1646  */
+#line 2915 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 112:
-#line 1332 "Oberon.y" /* yacc.c:1646  */
+#line 1342 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node typeStruct, caseVariable;
 
@@ -2915,11 +2930,11 @@ yyreduce:
 					if (! Types_IsRecord(typeStruct) || (Trees_Kind(caseVariable) == TREES_VAR_PARAM_KIND)) {
 						(yyval.node) = (yyvsp[0].node);
 					} else {
-						yyerror("error: record CASE expression must be a variable parameter");
+						Oberon_PrintError("error: record CASE expression must be a variable parameter");
 						YYABORT;
 					}
 				} else {
-					yyerror("error: non-integral CASE expression must be a variable");
+					Oberon_PrintError("error: non-integral CASE expression must be a variable");
 					YYABORT;
 				}
 				/*fall through*/
@@ -2931,15 +2946,15 @@ yyreduce:
 				(yyval.node) = (yyvsp[0].node);
 				break;
 			default:
-				yyerror("error: invalid type of CASE expression");
+				Oberon_PrintError("error: invalid type of CASE expression");
 				YYABORT;
 		}
 	}
-#line 2939 "y.tab.c" /* yacc.c:1646  */
+#line 2954 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 113:
-#line 1370 "Oberon.y" /* yacc.c:1646  */
+#line 1380 "Oberon.y" /* yacc.c:1652  */
     {
 		if ((yyvsp[0].node) != NULL) {
 			(yyval.node) = Trees_NewNode(TREES_CASE_REP, (yyvsp[0].node), NULL);
@@ -2947,11 +2962,11 @@ yyreduce:
 			(yyval.node) = NULL;
 		}
 	}
-#line 2951 "y.tab.c" /* yacc.c:1646  */
+#line 2966 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 114:
-#line 1378 "Oberon.y" /* yacc.c:1646  */
+#line 1388 "Oberon.y" /* yacc.c:1652  */
     {
 		if ((yyvsp[0].node) != NULL) {
 			if ((yyvsp[-2].node) != NULL) {
@@ -2963,36 +2978,36 @@ yyreduce:
 			(yyval.node) = NULL;
 		}
 	}
-#line 2967 "y.tab.c" /* yacc.c:1646  */
+#line 2982 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 115:
-#line 1393 "Oberon.y" /* yacc.c:1646  */
+#line 1403 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_ReverseList(&(yyvsp[-2].node)); /*correct order*/
 		(yyval.node) = Trees_NewNode(TREES_CASE, (yyvsp[-2].node), (yyvsp[0].node));
 	}
-#line 2976 "y.tab.c" /* yacc.c:1646  */
+#line 2991 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 116:
-#line 1398 "Oberon.y" /* yacc.c:1646  */
+#line 1408 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 2984 "y.tab.c" /* yacc.c:1646  */
+#line 2999 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 117:
-#line 1405 "Oberon.y" /* yacc.c:1646  */
+#line 1415 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(TREES_CASE_LABEL_LIST, (yyvsp[0].node), NULL);
 	}
-#line 2992 "y.tab.c" /* yacc.c:1646  */
+#line 3007 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 118:
-#line 1409 "Oberon.y" /* yacc.c:1646  */
+#line 1419 "Oberon.y" /* yacc.c:1652  */
     {
 		switch (Trees_Symbol((yyvsp[0].node))) {
 			case INTEGER:
@@ -3001,15 +3016,15 @@ yyreduce:
 				(yyval.node) = Trees_NewNode(TREES_CASE_LABEL_LIST, (yyvsp[0].node), (yyvsp[-2].node));
 				break;
 			default:
-				yyerror("error: unexpected list of type name case labels");
+				Oberon_PrintError("error: unexpected list of type name case labels");
 				YYABORT;
 		}
 	}
-#line 3009 "y.tab.c" /* yacc.c:1646  */
+#line 3024 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 119:
-#line 1425 "Oberon.y" /* yacc.c:1646  */
+#line 1435 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = (yyvsp[0].node);
 		CheckCaseLabelUniqueness((yyvsp[0].node));
@@ -3018,15 +3033,15 @@ yyreduce:
 			Trees_NewNode(TREES_NOSYM, (yyvsp[0].node), Trees_Left(caseLabelsStack)),
 			Trees_Right(caseLabelsStack));
 	}
-#line 3022 "y.tab.c" /* yacc.c:1646  */
+#line 3037 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 120:
-#line 1434 "Oberon.y" /* yacc.c:1646  */
+#line 1444 "Oberon.y" /* yacc.c:1652  */
     {
 		const int rangeLenMax = 255;
 		int leftSym, rightSym;
-		OBNC_LONGI int rangeMin, rangeMax;
+		OBNC_INTEGER rangeMin, rangeMax;
 
 		leftSym = Trees_Symbol((yyvsp[-2].node));
 		rightSym = Trees_Symbol((yyvsp[0].node));
@@ -3037,26 +3052,26 @@ yyreduce:
 					rangeMax = Trees_Integer((yyvsp[0].node));
 					if (rangeMin <= rangeMax) {
 						if (rangeMax - rangeMin > rangeLenMax) {
-							yyerror("warning: maximum range length of %d exceeded", rangeLenMax);
+							Oberon_PrintError("warning: maximum range length of %d exceeded", rangeLenMax);
 							YYABORT;
 						}
 					} else {
-						yyerror("error: left integer must be less than right integer in case range");
+						Oberon_PrintError("error: left integer must be less than right integer in case range");
 						YYABORT;
 					}
 					break;
 				case TREES_CHAR_CONSTANT:
 					if (Trees_Char((yyvsp[-2].node)) >= Trees_Char((yyvsp[0].node))) {
-						yyerror("error: left string must be less than right string in case range");
+						Oberon_PrintError("error: left string must be less than right string in case range");
 						YYABORT;
 					}
 					break;
 				default:
-					yyerror("error: case label ranges must contain integers or single-character strings");
+					Oberon_PrintError("error: case label ranges must contain integers or single-character strings");
 					YYABORT;
 			}
 		} else {
-			yyerror("error: case labels in a range must have the same type");
+			Oberon_PrintError("error: case labels in a range must have the same type");
 			YYABORT;
 		}
 		(yyval.node) = Trees_NewNode(DOTDOT, (yyvsp[-2].node), (yyvsp[0].node));
@@ -3066,42 +3081,42 @@ yyreduce:
 			Trees_NewNode(TREES_NOSYM, (yyval.node), Trees_Left(caseLabelsStack)),
 			Trees_Right(caseLabelsStack));
 	}
-#line 3070 "y.tab.c" /* yacc.c:1646  */
+#line 3085 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 121:
-#line 1481 "Oberon.y" /* yacc.c:1646  */
+#line 1491 "Oberon.y" /* yacc.c:1652  */
     {
 		if (Types_IsInteger(Trees_Type(Trees_Left(caseExpressionStack)))) {
 			(yyval.node) = Trees_NewInteger((yyvsp[0].integer));
 		} else {
-			yyerror("error: unexpected integer case label");
+			Oberon_PrintError("error: unexpected integer case label");
 			YYABORT;
 		}
 	}
-#line 3083 "y.tab.c" /* yacc.c:1646  */
+#line 3098 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 122:
-#line 1490 "Oberon.y" /* yacc.c:1646  */
+#line 1500 "Oberon.y" /* yacc.c:1652  */
     {
 		if (Types_IsChar(Trees_Type(Trees_Left(caseExpressionStack)))) {
 			if (strlen((yyvsp[0].string)) <= 1) {
 				(yyval.node) = Trees_NewChar((yyvsp[0].string)[0]);
 			} else {
-				yyerror("error: single-character string expected: \"%s\"", (yyvsp[0].string));
+				Oberon_PrintError("error: single-character string expected: \"%s\"", (yyvsp[0].string));
 				YYABORT;
 			}
 		} else {
-			yyerror("error: unexpected string case label: \"%s\"", (yyvsp[0].string));
+			Oberon_PrintError("error: unexpected string case label: \"%s\"", (yyvsp[0].string));
 			YYABORT;
 		}
 	}
-#line 3101 "y.tab.c" /* yacc.c:1646  */
+#line 3116 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 123:
-#line 1504 "Oberon.y" /* yacc.c:1646  */
+#line 1514 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node caseExp, constValue, caseVariable;
 
@@ -3116,15 +3131,15 @@ yyreduce:
 							if (Trees_Integer(constValue) >= 0) {
 								(yyval.node) = constValue;
 							} else {
-								yyerror("error: non-negative case label expected: %" OBNC_INT_MOD "d", Trees_Integer(constValue));
+								Oberon_PrintError("error: non-negative case label expected: %" OBNC_INT_MOD "d", Trees_Integer(constValue));
 								YYABORT;
 							}
 						} else {
-							yyerror("error: integer case label expected");
+							Oberon_PrintError("error: integer case label expected");
 							YYABORT;
 						}
 					} else {
-						yyerror("error: constant identifier expected: %s", Trees_Name((yyval.node)));
+						Oberon_PrintError("error: constant identifier expected: %s", Trees_Name((yyval.node)));
 						YYABORT;
 					}
 					break;
@@ -3135,15 +3150,15 @@ yyreduce:
 							if (Types_StringLength(Trees_Type(constValue)) <= 1) {
 								(yyval.node) = Trees_NewChar(Trees_String(constValue)[0]);
 							} else {
-								yyerror("error: single-character string expected: %s", Trees_String(constValue));
+								Oberon_PrintError("error: single-character string expected: %s", Trees_String(constValue));
 								YYABORT;
 							}
 						} else {
-							yyerror("error: character case label expected");
+							Oberon_PrintError("error: character case label expected");
 							YYABORT;
 						}
 					} else {
-						yyerror("error: constant identifier expected: %s", Trees_Name((yyval.node)));
+						Oberon_PrintError("error: constant identifier expected: %s", Trees_Name((yyval.node)));
 						YYABORT;
 					}
 					break;
@@ -3153,11 +3168,11 @@ yyreduce:
 							caseVariable = Trees_Left(caseExp);
 							Trees_SetType((yyval.node), caseVariable);
 						} else {
-							yyerror("error: case label is not an extension of %s: %s", Trees_Name(Trees_Type(caseExp)), Trees_Name((yyval.node)));
+							Oberon_PrintError("error: case label is not an extension of %s: %s", Trees_Name(Trees_Type(caseExp)), Trees_Name((yyval.node)));
 							YYABORT;
 						}
 					} else {
-						yyerror("error: record type case label expected");
+						Oberon_PrintError("error: record type case label expected");
 						YYABORT;
 					}
 					break;
@@ -3167,11 +3182,11 @@ yyreduce:
 							caseVariable = Trees_Left(caseExp);
 							Trees_SetType((yyval.node), caseVariable);
 						} else {
-							yyerror("error: case label is not an extension of %s: %s", Trees_Name(Trees_Type(caseExp)), Trees_Name((yyval.node)));
+							Oberon_PrintError("error: case label is not an extension of %s: %s", Trees_Name(Trees_Type(caseExp)), Trees_Name((yyval.node)));
 							YYABORT;
 						}
 					} else {
-						yyerror("error: pointer type case label expected");
+						Oberon_PrintError("error: pointer type case label expected");
 						YYABORT;
 					}
 					break;
@@ -3179,54 +3194,54 @@ yyreduce:
 					assert(0);
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
 			YYABORT;
 		}
 	}
-#line 3187 "y.tab.c" /* yacc.c:1646  */
+#line 3202 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 124:
-#line 1589 "Oberon.y" /* yacc.c:1646  */
+#line 1599 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(WHILE, (yyvsp[-4].node), Trees_NewNode(DO, (yyvsp[-2].node), (yyvsp[-1].node)));
 	}
-#line 3195 "y.tab.c" /* yacc.c:1646  */
+#line 3210 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 125:
-#line 1596 "Oberon.y" /* yacc.c:1646  */
+#line 1606 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(ELSIF, (yyvsp[-2].node), Trees_NewNode(THEN, (yyvsp[0].node), (yyvsp[-4].node)));
 	}
-#line 3203 "y.tab.c" /* yacc.c:1646  */
+#line 3218 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 126:
-#line 1600 "Oberon.y" /* yacc.c:1646  */
+#line 1610 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 3211 "y.tab.c" /* yacc.c:1646  */
+#line 3226 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 127:
-#line 1607 "Oberon.y" /* yacc.c:1646  */
+#line 1617 "Oberon.y" /* yacc.c:1652  */
     {
 		CheckIsValueExpression((yyvsp[0].node));
 		(yyval.node) = NULL;
 		if (Types_IsBoolean(Trees_Type((yyvsp[0].node)))) {
 			(yyval.node) = Trees_NewNode(REPEAT, (yyvsp[-2].node), (yyvsp[0].node));
 		} else {
-			yyerror("error: boolean expression expected");
+			Oberon_PrintError("error: boolean expression expected");
 			YYABORT;
 		}
 	}
-#line 3226 "y.tab.c" /* yacc.c:1646  */
+#line 3241 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 128:
-#line 1622 "Oberon.y" /* yacc.c:1646  */
+#line 1632 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node byExp;
 
@@ -3241,11 +3256,11 @@ yyreduce:
 				(yyvsp[-4].node),
 				Trees_NewNode(BY, byExp, (yyvsp[-1].node))));
 	}
-#line 3245 "y.tab.c" /* yacc.c:1646  */
+#line 3260 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 129:
-#line 1640 "Oberon.y" /* yacc.c:1646  */
+#line 1650 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node ctrlVar, ctrlVarType;
 
@@ -3257,64 +3272,64 @@ yyreduce:
 				if (Types_IsInteger(Trees_Type((yyvsp[0].node)))) {
 					(yyval.node) = Trees_NewNode(BECOMES, ctrlVar, (yyvsp[0].node));
 				} else {
-					yyerror("error: integer expression expected as initial value");
+					Oberon_PrintError("error: integer expression expected as initial value");
 					YYABORT;
 				}
 			} else {
-				yyerror("error: integer control variable expected: %s", (yyvsp[-2].ident));
+				Oberon_PrintError("error: integer control variable expected: %s", (yyvsp[-2].ident));
 				YYABORT;
 			}
 		} else {
-			yyerror("error: undeclared control variable: %s", (yyvsp[-2].ident));
+			Oberon_PrintError("error: undeclared control variable: %s", (yyvsp[-2].ident));
 			YYABORT;
 		}
 	}
-#line 3273 "y.tab.c" /* yacc.c:1646  */
+#line 3288 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 130:
-#line 1666 "Oberon.y" /* yacc.c:1646  */
+#line 1676 "Oberon.y" /* yacc.c:1652  */
     {
 		CheckIsValueExpression((yyvsp[0].node));
 		if (! Types_IsInteger(Trees_Type((yyvsp[0].node)))) {
-			yyerror("error: integer expression expected as upper limit");
+			Oberon_PrintError("error: integer expression expected as upper limit");
 			YYABORT;
 		}
 	}
-#line 3285 "y.tab.c" /* yacc.c:1646  */
+#line 3300 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 131:
-#line 1677 "Oberon.y" /* yacc.c:1646  */
+#line 1687 "Oberon.y" /* yacc.c:1652  */
     {
 		if (Types_IsInteger(Trees_Type((yyvsp[0].node)))) {
 			if (IsInteger((yyvsp[0].node))) {
 				if (Trees_Integer((yyvsp[0].node)) == 0) {
-					yyerror("warning: steps by zero leads to infinite loop");
+					Oberon_PrintError("warning: steps by zero leads to infinite loop");
 				}
 				(yyval.node) = (yyvsp[0].node);
 			} else {
-				yyerror("error: fully evaluated constant expression expected as increment");
+				Oberon_PrintError("error: fully evaluated constant expression expected as increment");
 				YYABORT;
 			}
 		} else {
-			yyerror("error: integer increment expected");
+			Oberon_PrintError("error: integer increment expected");
 			YYABORT;
 		}
 	}
-#line 3306 "y.tab.c" /* yacc.c:1646  */
+#line 3321 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 132:
-#line 1694 "Oberon.y" /* yacc.c:1646  */
+#line 1704 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 3314 "y.tab.c" /* yacc.c:1646  */
+#line 3329 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 133:
-#line 1704 "Oberon.y" /* yacc.c:1646  */
+#line 1714 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node procIdent, procType, resultType, procStatements, returnExp;
 		const char *procName;
@@ -3329,7 +3344,7 @@ yyreduce:
 		if (strcmp(procName, (yyvsp[0].ident)) == 0) {
 			if (resultType == NULL) {
 				if (returnExp != NULL) {
-					yyerror("error: unexpected return expression");
+					Oberon_PrintError("error: unexpected return expression");
 					YYABORT;
 				}
 			} else {
@@ -3340,7 +3355,7 @@ yyreduce:
 						returnExp = Trees_NewChar(Trees_String(returnExp)[0]);
 					}
 				} else {
-					yyerror("error: return expression expected");
+					Oberon_PrintError("error: return expression expected");
 					YYABORT;
 				}
 			}
@@ -3354,17 +3369,18 @@ yyreduce:
 				procedureDeclarationStack = Trees_Right(procedureDeclarationStack);
 			}
 			Generate_ProcedureEnd(procIdent);
+			CheckUnusedIdentifiers();
 			Table_CloseScope();
 		} else {
-			yyerror("error: expected procedure name: %s", procName);
+			Oberon_PrintError("error: expected procedure name: %s", procName);
 			YYABORT;
 		}
 	}
-#line 3364 "y.tab.c" /* yacc.c:1646  */
+#line 3380 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 134:
-#line 1753 "Oberon.y" /* yacc.c:1646  */
+#line 1764 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node paramList, param;
 
@@ -3382,124 +3398,124 @@ yyreduce:
 		Generate_ProcedureHeading((yyvsp[-1].node));
 		(yyval.node) = (yyvsp[-1].node);
 	}
-#line 3386 "y.tab.c" /* yacc.c:1646  */
+#line 3402 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 135:
-#line 1774 "Oberon.y" /* yacc.c:1646  */
+#line 1785 "Oberon.y" /* yacc.c:1652  */
     {
 		if (! (Trees_Exported((yyvsp[0].node)) && Trees_Local((yyvsp[0].node)))) {
 			Trees_SetKind(TREES_PROCEDURE_KIND, (yyvsp[0].node));
 			Table_Put((yyvsp[0].node));
 			Table_OpenScope();
 		} else {
-			yyerror("error: cannot export local procedure: %s", Trees_Name((yyvsp[0].node)));
+			Oberon_PrintError("error: cannot export local procedure: %s", Trees_Name((yyvsp[0].node)));
 			YYABORT;
 		}
 		(yyval.node) = (yyvsp[0].node);
 	}
-#line 3402 "y.tab.c" /* yacc.c:1646  */
+#line 3418 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 136:
-#line 1789 "Oberon.y" /* yacc.c:1646  */
+#line 1800 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = (yyvsp[0].node);
 	}
-#line 3410 "y.tab.c" /* yacc.c:1646  */
+#line 3426 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 137:
-#line 1793 "Oberon.y" /* yacc.c:1646  */
+#line 1804 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 3418 "y.tab.c" /* yacc.c:1646  */
+#line 3434 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 138:
-#line 1800 "Oberon.y" /* yacc.c:1646  */
+#line 1811 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = (yyvsp[0].node);
 	}
-#line 3426 "y.tab.c" /* yacc.c:1646  */
+#line 3442 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 139:
-#line 1804 "Oberon.y" /* yacc.c:1646  */
+#line 1815 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 3434 "y.tab.c" /* yacc.c:1646  */
+#line 3450 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 145:
-#line 1825 "Oberon.y" /* yacc.c:1646  */
+#line 1836 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node unresolvedPointerType, undeclaredBaseType;
 
 		if (unresolvedPointerTypes != NULL) {
 			unresolvedPointerType = Trees_Left(unresolvedPointerTypes);
 			undeclaredBaseType = Types_PointerBaseType(unresolvedPointerType);
-			yyerror("error: undeclared pointer base type: %s", Trees_Name(undeclaredBaseType));
+			Oberon_PrintError("error: undeclared pointer base type: %s", Trees_Name(undeclaredBaseType));
 			YYABORT;
 		}
 	}
-#line 3449 "y.tab.c" /* yacc.c:1646  */
+#line 3465 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 146:
-#line 1836 "Oberon.y" /* yacc.c:1646  */
+#line 1847 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 3457 "y.tab.c" /* yacc.c:1646  */
+#line 3473 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 147:
-#line 1843 "Oberon.y" /* yacc.c:1646  */
+#line 1854 "Oberon.y" /* yacc.c:1652  */
     {
 		unresolvedPointerTypes = NULL;
 	}
-#line 3465 "y.tab.c" /* yacc.c:1646  */
+#line 3481 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 156:
-#line 1870 "Oberon.y" /* yacc.c:1646  */
+#line 1881 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Types_NewProcedure((yyvsp[-2].node), (yyvsp[0].node));
 	}
-#line 3473 "y.tab.c" /* yacc.c:1646  */
+#line 3489 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 157:
-#line 1877 "Oberon.y" /* yacc.c:1646  */
+#line 1888 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_ReverseList(&(yyvsp[0].node)); /*correct order*/
 		(yyval.node) = (yyvsp[0].node);
 	}
-#line 3482 "y.tab.c" /* yacc.c:1646  */
+#line 3498 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 158:
-#line 1882 "Oberon.y" /* yacc.c:1646  */
+#line 1893 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 3490 "y.tab.c" /* yacc.c:1646  */
+#line 3506 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 159:
-#line 1889 "Oberon.y" /* yacc.c:1646  */
+#line 1900 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = (yyvsp[0].node);
 		Trees_ReverseList(&(yyval.node));
 	}
-#line 3499 "y.tab.c" /* yacc.c:1646  */
+#line 3515 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 160:
-#line 1894 "Oberon.y" /* yacc.c:1646  */
+#line 1905 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node p, p1;
 		const char *paramName, *paramName1;
@@ -3512,7 +3528,7 @@ yyreduce:
 			while (p1 != NULL) {
 				paramName1 = Trees_Name(Trees_Left(p1));
 				if (strcmp(paramName1, paramName) == 0) {
-					yyerror("error: repeated parameter: %s", paramName);
+					Oberon_PrintError("error: repeated parameter: %s", paramName);
 					YYABORT;
 				}
 				p1 = Trees_Right(p1);
@@ -3529,42 +3545,42 @@ yyreduce:
 		} while (p != NULL);
 		/*$$ in reversed order*/
 	}
-#line 3533 "y.tab.c" /* yacc.c:1646  */
+#line 3549 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 161:
-#line 1927 "Oberon.y" /* yacc.c:1646  */
+#line 1938 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = ResolvedType((yyvsp[0].node), 0);
 		if ((yyval.node) != NULL) {
 			if (Trees_Symbol((yyval.node)) == IDENT) {
 				if (Trees_Kind((yyval.node)) != TREES_TYPE_KIND) {
-					yyerror("error: type name expected as result type: %s", Trees_Name((yyvsp[0].node)));
+					Oberon_PrintError("error: type name expected as result type: %s", Trees_Name((yyvsp[0].node)));
 					YYABORT;
 				}
 				if (! Types_Scalar((yyval.node))) {
-					yyerror("error: scalar result type expected: %s", Trees_Name((yyvsp[0].node)));
+					Oberon_PrintError("error: scalar result type expected: %s", Trees_Name((yyvsp[0].node)));
 					YYABORT;
 				}
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
 			YYABORT;
 		}
 	}
-#line 3556 "y.tab.c" /* yacc.c:1646  */
+#line 3572 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 162:
-#line 1946 "Oberon.y" /* yacc.c:1646  */
+#line 1957 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 3564 "y.tab.c" /* yacc.c:1646  */
+#line 3580 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 163:
-#line 1953 "Oberon.y" /* yacc.c:1646  */
+#line 1964 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node curr, ident;
 
@@ -3580,35 +3596,35 @@ yyreduce:
 
 		(yyval.node) = (yyvsp[-2].node);
 	}
-#line 3584 "y.tab.c" /* yacc.c:1646  */
+#line 3600 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 164:
-#line 1972 "Oberon.y" /* yacc.c:1646  */
+#line 1983 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = TREES_VAR_PARAM_KIND;
 	}
-#line 3592 "y.tab.c" /* yacc.c:1646  */
+#line 3608 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 165:
-#line 1976 "Oberon.y" /* yacc.c:1646  */
+#line 1987 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.integer) = TREES_VALUE_PARAM_KIND;
 	}
-#line 3600 "y.tab.c" /* yacc.c:1646  */
+#line 3616 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 166:
-#line 1983 "Oberon.y" /* yacc.c:1646  */
+#line 1994 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(TREES_IDENT_LIST, Trees_NewIdent((yyvsp[0].ident)), NULL);
 	}
-#line 3608 "y.tab.c" /* yacc.c:1646  */
+#line 3624 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 167:
-#line 1987 "Oberon.y" /* yacc.c:1646  */
+#line 1998 "Oberon.y" /* yacc.c:1652  */
     {
 		Trees_Node curr;
 		const char *identName;
@@ -3618,7 +3634,7 @@ yyreduce:
 		while (curr != NULL) {
 			identName = Trees_Name(Trees_Left(curr));
 			if (strcmp(identName, (yyvsp[0].ident)) == 0) {
-				yyerror("error: repeated identifier: %s", identName);
+				Oberon_PrintError("error: repeated identifier: %s", identName);
 				YYABORT;
 			}
 			curr = Trees_Right(curr);
@@ -3626,11 +3642,11 @@ yyreduce:
 
 		(yyval.node) = Trees_NewNode(TREES_IDENT_LIST, Trees_NewIdent((yyvsp[0].ident)), (yyvsp[-2].node));
 	}
-#line 3630 "y.tab.c" /* yacc.c:1646  */
+#line 3646 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 168:
-#line 2008 "Oberon.y" /* yacc.c:1646  */
+#line 2019 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = ResolvedType((yyvsp[0].node), 0);
 		if ((yyval.node) != NULL) {
@@ -3639,35 +3655,36 @@ yyreduce:
 				(yyvsp[-1].node) = Trees_Right((yyvsp[-1].node));
 			}
 		} else {
-			yyerror("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
+			Oberon_PrintError("error: undeclared identifier: %s", Trees_Name((yyvsp[0].node)));
 			exit(EXIT_FAILURE);
 		}
 	}
-#line 3647 "y.tab.c" /* yacc.c:1646  */
+#line 3663 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 169:
-#line 2024 "Oberon.y" /* yacc.c:1646  */
+#line 2035 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = Trees_NewNode(ARRAY, NULL, (yyvsp[-2].node));
 	}
-#line 3655 "y.tab.c" /* yacc.c:1646  */
+#line 3671 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 170:
-#line 2028 "Oberon.y" /* yacc.c:1646  */
+#line 2039 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.node) = NULL;
 	}
-#line 3663 "y.tab.c" /* yacc.c:1646  */
+#line 3679 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 171:
-#line 2038 "Oberon.y" /* yacc.c:1646  */
+#line 2049 "Oberon.y" /* yacc.c:1652  */
     {
 		const char *symfilePath;
 
 		if (strcmp((yyvsp[-1].ident), inputModuleName) == 0) {
+			CheckUnusedIdentifiers();
 			Generate_ModuleEnd();
 			Generate_Close();
 
@@ -3681,50 +3698,50 @@ yyreduce:
 			}
 			YYACCEPT;
 		} else {
-			yyerror("error: expected identifier %s", inputModuleName);
+			Oberon_PrintError("error: expected identifier %s", inputModuleName);
 			YYABORT;
 		}
 	}
-#line 3689 "y.tab.c" /* yacc.c:1646  */
+#line 3706 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 172:
-#line 2064 "Oberon.y" /* yacc.c:1646  */
+#line 2076 "Oberon.y" /* yacc.c:1652  */
     {
 		if (strcmp((yyvsp[0].ident), inputModuleName) == 0) {
 			if (parseMode != OBERON_IMPORT_LIST_MODE) {
 				Generate_ModuleHeading();
 			}
 		} else {
-			yyerror("error: module name does not match filename: %s", (yyvsp[0].ident));
+			Oberon_PrintError("error: module name does not match filename: %s", (yyvsp[0].ident));
 			YYABORT;
 		}
 	}
-#line 3704 "y.tab.c" /* yacc.c:1646  */
+#line 3721 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 173:
-#line 2078 "Oberon.y" /* yacc.c:1646  */
+#line 2090 "Oberon.y" /* yacc.c:1652  */
     {
 		if (parseMode == OBERON_IMPORT_LIST_MODE) {
 			YYACCEPT;
 		}
 	}
-#line 3714 "y.tab.c" /* yacc.c:1646  */
+#line 3731 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 174:
-#line 2084 "Oberon.y" /* yacc.c:1646  */
+#line 2096 "Oberon.y" /* yacc.c:1652  */
     {
 		if (parseMode == OBERON_IMPORT_LIST_MODE) {
 			YYACCEPT;
 		}
 	}
-#line 3724 "y.tab.c" /* yacc.c:1646  */
+#line 3741 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 175:
-#line 2093 "Oberon.y" /* yacc.c:1646  */
+#line 2105 "Oberon.y" /* yacc.c:1652  */
     {
 		const char *impfilePath;
 		Trees_Node moduleAndDirPath, module, p;
@@ -3757,11 +3774,11 @@ yyreduce:
 			}
 		}
 	}
-#line 3761 "y.tab.c" /* yacc.c:1646  */
+#line 3778 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 176:
-#line 2129 "Oberon.y" /* yacc.c:1646  */
+#line 2141 "Oberon.y" /* yacc.c:1652  */
     {
 		if ((yyvsp[0].node) != NULL) {
 			(yyval.node) = Trees_NewNode(TREES_NOSYM, (yyvsp[0].node), NULL);
@@ -3769,11 +3786,11 @@ yyreduce:
 			(yyval.node) = NULL;
 		}
 	}
-#line 3773 "y.tab.c" /* yacc.c:1646  */
+#line 3790 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 177:
-#line 2137 "Oberon.y" /* yacc.c:1646  */
+#line 2149 "Oberon.y" /* yacc.c:1652  */
     {
 		if ((yyvsp[0].node) != NULL) {
 			(yyval.node) = Trees_NewNode(TREES_NOSYM, (yyvsp[0].node), (yyvsp[-2].node));
@@ -3781,11 +3798,11 @@ yyreduce:
 			(yyval.node) = (yyvsp[-2].node);
 		}
 	}
-#line 3785 "y.tab.c" /* yacc.c:1646  */
+#line 3802 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 178:
-#line 2148 "Oberon.y" /* yacc.c:1646  */
+#line 2160 "Oberon.y" /* yacc.c:1652  */
     {
 		static Maps_Map importedModules = NULL;
 		const char *module, *qualifier, *symbolFileDir, *symbolFileName, *moduleDirPath;
@@ -3821,7 +3838,7 @@ yyreduce:
 					} else if (parseMode == OBERON_IMPORT_LIST_MODE) {
 						(yyval.node) = Trees_NewIdent(module);
 					} else {
-						moduleDirPath = ModulePaths_Directory(module, ".");
+						moduleDirPath = ModulePaths_Directory(module, ".", 0);
 						if (moduleDirPath != NULL) {
 							/*import identifiers into the symbol table*/
 							symbolFileDir = Util_String("%s/.obnc", moduleDirPath);
@@ -3832,7 +3849,7 @@ yyreduce:
 							if (Files_Exists(symbolFileName)) {
 								Table_Import(symbolFileName, module, qualifier);
 							} else {
-								yyerror("error: symbol file not found for module %s: %s", module, symbolFileName);
+								Oberon_PrintError("error: symbol file not found for module %s: %s", module, symbolFileName);
 								YYABORT;
 							}
 
@@ -3840,52 +3857,52 @@ yyreduce:
 							Trees_SetKind(TREES_QUALIFIER_KIND, moduleIdent);
 							(yyval.node) = Trees_NewNode(TREES_NOSYM, moduleIdent, Trees_NewString(moduleDirPath));
 						} else {
-							yyerror("error: imported module not found: %s", module);
+							Oberon_PrintError("error: imported module not found: %s", module);
 							YYABORT;
 						}
 					}
 				} else {
-					yyerror("error: qualifier already used: %s", qualifier);
+					Oberon_PrintError("error: qualifier already used: %s", qualifier);
 					YYABORT;
 				}
 			} else {
-				yyerror("error: module already imported: %s", module);
+				Oberon_PrintError("error: module already imported: %s", module);
 				YYABORT;
 			}
 		} else {
-			yyerror("error: a module cannot import itself");
+			Oberon_PrintError("error: a module cannot import itself");
 			YYABORT;
 		}
 	}
-#line 3861 "y.tab.c" /* yacc.c:1646  */
+#line 3878 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 179:
-#line 2223 "Oberon.y" /* yacc.c:1646  */
+#line 2235 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.ident) = (yyvsp[0].ident);
 	}
-#line 3869 "y.tab.c" /* yacc.c:1646  */
+#line 3886 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 180:
-#line 2227 "Oberon.y" /* yacc.c:1646  */
+#line 2239 "Oberon.y" /* yacc.c:1652  */
     {
 		(yyval.ident) = NULL;
 	}
-#line 3877 "y.tab.c" /* yacc.c:1646  */
+#line 3894 "y.tab.c" /* yacc.c:1652  */
     break;
 
   case 181:
-#line 2234 "Oberon.y" /* yacc.c:1646  */
+#line 2246 "Oberon.y" /* yacc.c:1652  */
     {
 		Generate_ModuleStatements((yyvsp[0].node));
 	}
-#line 3885 "y.tab.c" /* yacc.c:1646  */
+#line 3902 "y.tab.c" /* yacc.c:1652  */
     break;
 
 
-#line 3889 "y.tab.c" /* yacc.c:1646  */
+#line 3906 "y.tab.c" /* yacc.c:1652  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -3910,14 +3927,13 @@ yyreduce:
   /* Now 'shift' the result of the reduction.  Determine what state
      that goes to, based on the state we popped back to and the rule
      number reduced by.  */
-
-  yyn = yyr1[yyn];
-
-  yystate = yypgoto[yyn - YYNTOKENS] + *yyssp;
-  if (0 <= yystate && yystate <= YYLAST && yycheck[yystate] == *yyssp)
-    yystate = yytable[yystate];
-  else
-    yystate = yydefgoto[yyn - YYNTOKENS];
+  {
+    const int yylhs = yyr1[yyn] - YYNTOKENS;
+    const int yyi = yypgoto[yylhs] + *yyssp;
+    yystate = (0 <= yyi && yyi <= YYLAST && yycheck[yyi] == *yyssp
+               ? yytable[yyi]
+               : yydefgoto[yylhs]);
+  }
 
   goto yynewstate;
 
@@ -4000,12 +4016,10 @@ yyerrlab:
 | yyerrorlab -- error raised explicitly by YYERROR.  |
 `---------------------------------------------------*/
 yyerrorlab:
-
-  /* Pacify compilers like GCC when the user code never invokes
-     YYERROR and the label yyerrorlab therefore never appears in user
-     code.  */
-  if (/*CONSTCOND*/ 0)
-     goto yyerrorlab;
+  /* Pacify compilers when the user code never invokes YYERROR and the
+     label yyerrorlab therefore never appears in user code.  */
+  if (0)
+    YYERROR;
 
   /* Do not reclaim the symbols of the rule whose action triggered
      this YYERROR.  */
@@ -4067,12 +4081,14 @@ yyacceptlab:
   yyresult = 0;
   goto yyreturn;
 
+
 /*-----------------------------------.
 | yyabortlab -- YYABORT comes here.  |
 `-----------------------------------*/
 yyabortlab:
   yyresult = 1;
   goto yyreturn;
+
 
 #if !defined yyoverflow || YYERROR_VERBOSE
 /*-------------------------------------------------.
@@ -4084,6 +4100,10 @@ yyexhaustedlab:
   /* Fall through.  */
 #endif
 
+
+/*-----------------------------------------------------.
+| yyreturn -- parsing is finished, return the result.  |
+`-----------------------------------------------------*/
 yyreturn:
   if (yychar != YYEMPTY)
     {
@@ -4113,33 +4133,19 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 2239 "Oberon.y" /* yacc.c:1906  */
+#line 2251 "Oberon.y" /* yacc.c:1918  */
 
 
 void Oberon_Init(void)
 {
-	static int initialized = 0;
-
 	if (! initialized) {
+		initialized = 1;
 		Error_Init();
 		Files_Init();
+		Generate_Init();
 		ModulePaths_Init();
 		Table_Init();
-		initialized = 1;
 	}
-}
-
-
-static char *ModuleName(const char filename[])
-{
-	char *base, *suffix;
-
-	base = Paths_Basename(filename);
-	suffix = strchr(base, '.');
-	if (suffix != NULL) {
-		*suffix = '\0';
-	}
-	return base;
 }
 
 
@@ -4149,14 +4155,15 @@ void Oberon_Parse(const char inputFile[], int mode)
 	FILE *fp;
 	int error;
 
+	assert(initialized);
 	inputFilename = inputFile;
 	parseMode = mode;
-	inputModuleName = ModuleName(inputFile);
+	inputModuleName = Paths_SansSuffix(Paths_Basename(inputFile));
 
 	yyin = fopen(inputFile, "r");
 	if (yyin != NULL) {
 		if (mode != OBERON_IMPORT_LIST_MODE) {
-			Generate_Open(inputModuleName, mode == OBERON_ENTRY_POINT_MODE);
+			Generate_Open(inputFile, mode == OBERON_ENTRY_POINT_MODE);
 
 			impFile = Util_String(".obnc/%s.imp", inputModuleName);
 			if (parseMode == OBERON_NORMAL_MODE) {
@@ -4181,15 +4188,83 @@ void Oberon_Parse(const char inputFile[], int mode)
 }
 
 
-void yyerror(const char format[], ...)
+void Oberon_PrintError(const char format[], ...)
 {
 	va_list ap;
 
+	assert(initialized);
 	fprintf(stderr, "obnc-compile: %s:%d: ", inputFilename, yylineno);
 	va_start(ap, format);
 	vfprintf(stderr, format, ap);
 	va_end(ap);
 	fputc('\n', stderr);
+}
+
+
+void yyerror(const char msg[])
+{
+	Oberon_PrintError("%s", msg);
+}
+
+
+static void PrintError(int line, const char format[], ...)
+	__attribute__ ((format (printf, 2, 3)));
+
+static void PrintError(int line, const char format[], ...)
+{
+	va_list ap;
+
+	fprintf(stderr, "obnc-compile: %s:%d: ", inputFilename, line);
+	va_start(ap, format);
+	vfprintf(stderr, format, ap);
+	va_end(ap);
+	fputc('\n', stderr);
+}
+
+
+static char *IdentKindString(int kind)
+{
+	char *result;
+
+	switch (kind) {
+		case TREES_CONSTANT_KIND:
+			result = Util_String("constant");
+			break;
+		case TREES_TYPE_KIND:
+			result = Util_String("type");
+			break;
+		case TREES_VARIABLE_KIND:
+			result = Util_String("variable");
+			break;
+		case TREES_PROCEDURE_KIND:
+			result = Util_String("procedure");
+			break;
+		case TREES_QUALIFIER_KIND:
+			result = Util_String("module");
+			break;
+		default:
+			result = Util_String("identifier");
+	}
+	return result;
+}
+
+
+static void CheckUnusedIdentifiers(void)
+{
+	Trees_Node unusedIdents, ident;
+	int kind;
+
+	unusedIdents = Table_UnusedIdentifiers();
+	while (unusedIdents != NULL) {
+		ident = Trees_Left(unusedIdents);
+		kind = Trees_Kind(ident);
+		if (! Trees_Exported(ident)
+				&& (kind != TREES_VALUE_PARAM_KIND)
+				&& (kind != TREES_VAR_PARAM_KIND)) {
+			PrintError(Trees_LineNumber(ident), "note: unused %s: %s", IdentKindString(Trees_Kind(ident)), Trees_UnaliasedName(ident));
+		}
+		unusedIdents = Trees_Right(unusedIdents);
+	}
 }
 
 
@@ -4252,11 +4327,11 @@ static Trees_Node ResolvedType(Trees_Node type, int isTypeDecl)
 						result = identDef;
 					}
 				} else {
-					yyerror("error: unresolved type: %s", name);
+					Oberon_PrintError("error: unresolved type: %s", name);
 					exit(EXIT_FAILURE);
 				}
 			} else {
-				yyerror("error: type expected: %s", name);
+				Oberon_PrintError("error: type expected: %s", name);
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -4282,6 +4357,7 @@ static void ResolvePointerTypes(Trees_Node baseType)
 		currBaseType = Types_PointerBaseType(currPointerType);
 		if (strcmp(Trees_Name(currBaseType), baseTypeName) == 0) {
 			if (Types_IsRecord(baseType)) {
+				Trees_SetUsed(baseType);
 				/*update pointer base type*/
 				Types_SetPointerBaseType(baseType, currPointerType);
 				/*delete current node*/
@@ -4291,7 +4367,7 @@ static void ResolvePointerTypes(Trees_Node baseType)
 					Trees_SetRight(Trees_Right(curr), prev);
 				}
 			} else {
-				yyerror("error: record type expected in declaration of pointer base type: %s", baseTypeName);
+				Oberon_PrintError("error: record type expected in declaration of pointer base type: %s", baseTypeName);
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -4411,7 +4487,7 @@ static int IsValueExpression(Trees_Node exp)
 static void CheckIsValueExpression(Trees_Node exp)
 {
 	if (! IsValueExpression(exp)) {
-		yyerror("error: value expected: %s", Trees_Name(BaseIdent(exp)));
+		Oberon_PrintError("error: value expected: %s", Trees_Name(BaseIdent(exp)));
 		exit(EXIT_FAILURE);
 	}
 }
@@ -4438,11 +4514,11 @@ static Trees_Node Designator(const char identName[], Trees_Node selectorList)
 					qualidentSym = Table_At(qualidentName);
 					qualidentSelectorList = Trees_Right(selectorList);
 					if (qualidentSym == NULL) {
-						yyerror("error: undeclared identifier: %s", qualidentName);
+						Oberon_PrintError("error: undeclared identifier: %s", qualidentName);
 						exit(EXIT_FAILURE);
 					}
 				} else {
-					yyerror("error: '.' expected after qualifier: %s", identName);
+					Oberon_PrintError("error: '.' expected after qualifier: %s", identName);
 					exit(EXIT_FAILURE);
 				}
 			} else {
@@ -4451,7 +4527,7 @@ static Trees_Node Designator(const char identName[], Trees_Node selectorList)
 			}
 
 		} else {
-			yyerror("error: undeclared identifier: %s", identName);
+			Oberon_PrintError("error: undeclared identifier: %s", identName);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -4482,7 +4558,7 @@ static Trees_Node FirstSelector(Trees_Node designator)
 static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *parameterListFound)
 {
 	Trees_Node currType, currTypeStruct, currSelector, prevSelector, indexExp, lengthNode, pointerNode, expList, extendedType, symbol, varField, typeField, fieldBaseType;
-	OBNC_LONGI int length, index;
+	OBNC_INTEGER length, index;
 	const char *fieldName;
 
 	currType = identType;
@@ -4500,14 +4576,14 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 						length = Trees_Integer(lengthNode);
 						index = Trees_Integer(indexExp);
 						if ((index < 0) || (index >= length)) {
-							yyerror("error: invalid array index: %" OBNC_INT_MOD "d not between 0 and %" OBNC_INT_MOD "d", index, length - 1);
+							Oberon_PrintError("error: invalid array index: %" OBNC_INT_MOD "d not between 0 and %" OBNC_INT_MOD "d", index, (OBNC_INTEGER) (length - 1));
 							exit(EXIT_FAILURE);
 						}
 					}
 					Trees_SetType(currType, currSelector);
 					currType = Types_ElementType(currTypeStruct);
 				} else {
-					yyerror("error: array variable expected in element selector");
+					Oberon_PrintError("error: array variable expected in element selector");
 					exit(EXIT_FAILURE);
 				}
 				break;
@@ -4531,16 +4607,16 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 								}
 								currType = Trees_Type(typeField);
 							} else {
-								yyerror("error: undeclared field: %s", fieldName);
+								Oberon_PrintError("error: undeclared field: %s", fieldName);
 								exit(EXIT_FAILURE);
 							}
 							break;
 						default:
-							yyerror("error: record variable expected in field selector");
+							Oberon_PrintError("error: record variable expected in field selector");
 							exit(EXIT_FAILURE);
 					}
 				} else {
-					yyerror("error: record variable expected in field selector");
+					Oberon_PrintError("error: record variable expected in field selector");
 					exit(EXIT_FAILURE);
 				}
 				break;
@@ -4549,7 +4625,7 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 					Trees_SetType(currType, currSelector);
 					currType = Types_PointerBaseType(currTypeStruct);
 				} else {
-					yyerror("error: pointer variable expected in pointer dereference");
+					Oberon_PrintError("error: pointer variable expected in pointer dereference");
 					exit(EXIT_FAILURE);
 				}
 				break;
@@ -4574,40 +4650,40 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 											Trees_SetType(extendedType, currSelector);
 											currType = extendedType;
 										} else {
-											yyerror("error: extended type expected: %s", Trees_Name(extendedType));
+											Oberon_PrintError("error: extended type expected: %s", Trees_Name(extendedType));
 											exit(EXIT_FAILURE);
 										}
 									} else {
 										if (Types_IsRecord(currType)) {
 											if (Trees_Kind(BaseIdent(designator)) != TREES_VAR_PARAM_KIND) {
-												yyerror("error: variable parameter expected in type guard");
+												Oberon_PrintError("error: variable parameter expected in type guard");
 											} else {
-												yyerror("error: record type expected in type guard: %s", Trees_Name(extendedType));
+												Oberon_PrintError("error: record type expected in type guard: %s", Trees_Name(extendedType));
 											}
 											exit(EXIT_FAILURE);
 										} else {
-											yyerror("error: pointer type expected in type guard: %s", Trees_Name(extendedType));
+											Oberon_PrintError("error: pointer type expected in type guard: %s", Trees_Name(extendedType));
 											exit(EXIT_FAILURE);
 										}
 									}
 								} else {
-									yyerror("error: type name expected: %s", Trees_Name(extendedType));
+									Oberon_PrintError("error: type name expected: %s", Trees_Name(extendedType));
 									exit(EXIT_FAILURE);
 								}
 							} else {
-								yyerror("error: undeclared identifier: %s", Trees_Name(extendedType));
+								Oberon_PrintError("error: undeclared identifier: %s", Trees_Name(extendedType));
 								exit(EXIT_FAILURE);
 							}
 						} else {
-							yyerror("error: identifier expected in type guard");
+							Oberon_PrintError("error: identifier expected in type guard");
 							exit(EXIT_FAILURE);
 						}
 					} else {
-						yyerror("error: unexpected comma in type guard");
+						Oberon_PrintError("error: unexpected comma in type guard");
 						exit(EXIT_FAILURE);
 					}
 				} else {
-					yyerror("error: unexpected parenthesis in designator which is not a record, pointer or procedure");
+					Oberon_PrintError("error: unexpected parenthesis in designator which is not a record, pointer or procedure");
 					exit(EXIT_FAILURE);
 				}
 				break;
@@ -4621,7 +4697,7 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 	if (currSelector == NULL) {
 		Trees_SetType(currType, designator);
 	} else {
-		yyerror("error: unexpected selector after procedure call");
+		Oberon_PrintError("error: unexpected selector after procedure call");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -4994,7 +5070,7 @@ static Trees_Node TermConstValue(int operator, Trees_Node expA, Trees_Node expB)
 						if (Trees_Real(expB) != 0) {
 							result = Trees_NewReal(Trees_Real(expA) / Trees_Real(expB));
 						} else {
-							yyerror("warning: division by zero");
+							Oberon_PrintError("warning: division by zero");
 						}
 					}
 					break;
@@ -5010,7 +5086,7 @@ static Trees_Node TermConstValue(int operator, Trees_Node expA, Trees_Node expB)
 				if (Trees_Integer(expB) > 0) {
 					result = Trees_NewInteger(OBNC_DIV(Trees_Integer(expA), Trees_Integer(expB)));
 				} else {
-					yyerror("error: positive divisor expected in DIV expression: %" OBNC_INT_MOD "d", Trees_Integer(expB));
+					Oberon_PrintError("error: positive divisor expected in DIV expression: %" OBNC_INT_MOD "d", Trees_Integer(expB));
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -5020,7 +5096,7 @@ static Trees_Node TermConstValue(int operator, Trees_Node expA, Trees_Node expB)
 				if (Trees_Integer(expB) > 0) {
 					result = Trees_NewInteger(OBNC_MOD(Trees_Integer(expA), Trees_Integer(expB)));
 				} else {
-					yyerror("error: positive divisor expected in MOD expression: %" OBNC_INT_MOD "d", Trees_Integer(expB));
+					Oberon_PrintError("error: positive divisor expected in MOD expression: %" OBNC_INT_MOD "d", Trees_Integer(expB));
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -5175,14 +5251,14 @@ static void ValidateAssignment(Trees_Node expression, Trees_Node targetType, int
 	} else {
 		errorContext = AssignmentErrorContext(context, paramPos);
 		if (IsString(expression) && Types_IsCharacterArray(targetType) && !Types_IsOpenArray(targetType)) {
-			yyerror("error: string too long in %s: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", errorContext, Types_StringLength(Trees_Type(expression)), Trees_Integer(Types_ArrayLength(targetType)));
+			Oberon_PrintError("error: string too long in %s: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", errorContext, Types_StringLength(Trees_Type(expression)), Trees_Integer(Types_ArrayLength(targetType)));
 			exit(EXIT_FAILURE);
 		} else if (Types_IsPredeclaredProcedure(Trees_Type(expression))
 				&& Types_IsProcedure(targetType)) {
-			yyerror("error: non-predeclared procedure expected in %s", errorContext);
+			Oberon_PrintError("error: non-predeclared procedure expected in %s", errorContext);
 			exit(EXIT_FAILURE);
 		} else {
-			yyerror("error: incompatible types in %s: %s -> %s",
+			Oberon_PrintError("error: incompatible types in %s: %s -> %s",
 				errorContext, TypeString(Trees_Type(expression)), TypeString(targetType));
 			exit(EXIT_FAILURE);
 		}
@@ -5201,15 +5277,15 @@ static void ValidateActualParameter(Trees_Node actualParam, Trees_Node formalPar
 			|| (IsDesignator(actualParam) && Writable(actualParam))) {
 		if (Types_IsOpenArray(formalType)) {
 			if (! Types_ArrayCompatible(actualType, formalType)) {
-				yyerror("error: array incompatible types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+				Oberon_PrintError("error: array incompatible types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 				exit(EXIT_FAILURE);
 			}
 		} else if (Trees_Kind(formalParam) == TREES_VALUE_PARAM_KIND) {
 			if (! Types_AssignmentCompatible(actualParam, formalType)) {
 				if (Types_IsString(actualType) && Types_IsCharacterArray(formalType)) {
-					yyerror("error: string too long in substitution of parameter %d: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", paramPos + 1, Types_StringLength(actualType), Trees_Integer(Types_ArrayLength(formalType)));
+					Oberon_PrintError("error: string too long in substitution of parameter %d: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", paramPos + 1, Types_StringLength(actualType), Trees_Integer(Types_ArrayLength(formalType)));
 				} else {
-					yyerror("error: assignment incompatible types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+					Oberon_PrintError("error: assignment incompatible types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 				}
 				exit(EXIT_FAILURE);
 			}
@@ -5217,22 +5293,22 @@ static void ValidateActualParameter(Trees_Node actualParam, Trees_Node formalPar
 			if (Types_IsRecord(formalType)) {
 				if (Types_IsRecord(actualType)) {
 					if (! Types_Extends(formalType, actualType)) {
-						yyerror("error: incompatible record types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+						Oberon_PrintError("error: incompatible record types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 						exit(EXIT_FAILURE);
 					}
 				} else {
-					yyerror("error: record expected in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+					Oberon_PrintError("error: record expected in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 					exit(EXIT_FAILURE);
 				}
 			} else {
 				if (! Types_Same(actualType, formalType)) {
-					yyerror("error: same types expected in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
+					Oberon_PrintError("error: same types expected in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
 					exit(EXIT_FAILURE);
 				}
 			}
 		}
 	} else {
-		yyerror("error: writable variable expected in substitution of parameter %d in %s",
+		Oberon_PrintError("error: writable variable expected in substitution of parameter %d in %s",
 			paramPos + 1, DesignatorString(procDesignator));
 		exit(EXIT_FAILURE);
 	}
@@ -5260,10 +5336,10 @@ static void ValidateProcedureCall(Trees_Node expList, Trees_Node fpList, Trees_N
 		pos++;
 	}
 	if ((expList == NULL) && (fpList != NULL)) {
-		yyerror("error: too few actual parameters in procedure call: %s", DesignatorString(procDesignator));
+		Oberon_PrintError("error: too few actual parameters in procedure call: %s", DesignatorString(procDesignator));
 		exit(EXIT_FAILURE);
 	} else if ((expList != NULL) && (fpList == NULL)) {
-		yyerror("error: too many actual parameters in procedure call: %s", DesignatorString(procDesignator));
+		Oberon_PrintError("error: too many actual parameters in procedure call: %s", DesignatorString(procDesignator));
 		exit(EXIT_FAILURE);
 	}
 }
@@ -5272,10 +5348,10 @@ static void ValidateProcedureCall(Trees_Node expList, Trees_Node fpList, Trees_N
 static void ValidateProcedureKind(const char procName[], int functionCallExpected, int isFunctionCall)
 {
 	if (isFunctionCall && ! functionCallExpected) {
-		yyerror("error: function procedure expected: %s", procName);
+		Oberon_PrintError("error: function procedure expected: %s", procName);
 		exit(EXIT_FAILURE);
 	} else if (! isFunctionCall && functionCallExpected) {
-		yyerror("error: proper procedure expected: %s", procName);
+		Oberon_PrintError("error: proper procedure expected: %s", procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -5289,9 +5365,9 @@ static void ValidateParameterCount(const char procName[], int min, int max, int 
 
 	if ((actual < min) || (actual > max)) {
 		if (min == max) {
-			yyerror("error: %d parameter(s) expected: %s", min, procName);
+			Oberon_PrintError("error: %d parameter(s) expected: %s", min, procName);
 		} else {
-			yyerror("error: %d or %d parameters expected: %s", min, max, procName);
+			Oberon_PrintError("error: %d or %d parameters expected: %s", min, max, procName);
 		}
 		exit(EXIT_FAILURE);
 	}
@@ -5301,7 +5377,7 @@ static void ValidateParameterCount(const char procName[], int min, int max, int 
 static void ValidateTypeParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! (IsDesignator(param) && (Trees_Kind(BaseIdent(param)) == TREES_TYPE_KIND))) {
-		yyerror("error: type identifier expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: type identifier expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -5310,7 +5386,7 @@ static void ValidateTypeParameter(const char procName[], Trees_Node param, int p
 static void ValidateValueParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! IsValueExpression(param)) {
-		yyerror("error: expression expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: expression expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -5319,10 +5395,10 @@ static void ValidateValueParameter(const char procName[], Trees_Node param, int 
 static void ValidateVariableParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! IsDesignator(param)) {
-		yyerror("error: variable expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: variable expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	} else if (! Writable(param)) {
-		yyerror("error: writable variable expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: writable variable expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -5333,7 +5409,7 @@ static void ValidateScalarParameter(const char procName[], Trees_Node paramType,
 	assert(Types_IsType(paramType));
 
 	if (! Types_Scalar(paramType)) {
-		yyerror("error: scalar type expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: scalar type expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -5342,7 +5418,7 @@ static void ValidateScalarParameter(const char procName[], Trees_Node paramType,
 static void ValidateIntegerParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! Types_IsInteger(Trees_Type(param))) {
-		yyerror("error: integer expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: integer expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -5351,24 +5427,15 @@ static void ValidateIntegerParameter(const char procName[], Trees_Node param, in
 static void ValidateRealParameter(const char procName[], Trees_Node param, int pos)
 {
 	if (! Types_IsReal(Trees_Type(param))) {
-		yyerror("error: parameter of type REAL expected in substitution of parameter %d: %s", pos + 1, procName);
+		Oberon_PrintError("error: parameter of type REAL expected in substitution of parameter %d: %s", pos + 1, procName);
 		exit(EXIT_FAILURE);
 	}
 }
 
 
-static void ValidateIntegerSize(const char procName[])
+static OBNC_INTEGER TypeSize(Trees_Node type)
 {
-		if (sizeof (OBNC_LONGI int) != sizeof (void *)) {
-			yyerror("error: integer size (%lu) and address size (%lu) are unequal: %s (requires OBNC to be compiled to use integers of size %lu)", (unsigned long) sizeof (OBNC_LONGI int), (unsigned long) sizeof (void *), procName, (unsigned long) sizeof (void *));
-			exit(EXIT_FAILURE);
-		}
-}
-
-
-static OBNC_LONGI int TypeSize(Trees_Node type)
-{
-	OBNC_LONGI int result = 0;
+	OBNC_INTEGER result = 0;
 
 	switch (Trees_Symbol(Types_Structure(type))) {
 		case TREES_BOOLEAN_TYPE:
@@ -5378,16 +5445,16 @@ static OBNC_LONGI int TypeSize(Trees_Node type)
 			result = sizeof (char);
 			break;
 		case TREES_INTEGER_TYPE:
-			result = sizeof (OBNC_LONGI int);
+			result = sizeof (OBNC_INTEGER);
 			break;
 		case TREES_REAL_TYPE:
-			result = sizeof (OBNC_LONGR double);
+			result = sizeof (OBNC_REAL);
 			break;
 		case TREES_BYTE_TYPE:
 			result = sizeof (unsigned char);
 			break;
 		case TREES_SET_TYPE:
-			result = sizeof (unsigned OBNC_LONGI int);
+			result = sizeof (unsigned OBNC_INTEGER);
 			break;
 		case ARRAY:
 			result = Trees_Integer(Types_ArrayLength(type)) * TypeSize(Types_ElementType(type));
@@ -5486,7 +5553,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					/*do nothing*/
 					break;
 				default:
-					yyerror("error: numeric parameter expected: %s", procName);
+					Oberon_PrintError("error: numeric parameter expected: %s", procName);
 					exit(EXIT_FAILURE);
 			}
 			if (result == NULL) {
@@ -5515,7 +5582,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					resultType = Trees_NewLeaf(TREES_INTEGER_TYPE);
 				}
 			} else {
-				yyerror("error: array parameter expected: %s", procName);
+				Oberon_PrintError("error: array parameter expected: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -5568,7 +5635,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateValueParameter(procName, param[0], 0);
 			ValidateRealParameter(procName, param[0], 0);
 			if (IsReal(param[0])) {
-				OBNC_LONGR double x = Trees_Real(param[0]);
+				OBNC_REAL x = Trees_Real(param[0]);
 				Range_CheckFLOOR(x);
 				result = Trees_NewInteger(OBNC_FLOOR(x));
 			} else {
@@ -5596,9 +5663,9 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					break;
 				case TREES_STRING_TYPE:
 					if (Types_StringLength(paramTypes[0]) <= 1) {
-						result = Trees_NewInteger(Trees_String(param[0])[0]);
+						result = Trees_NewInteger((unsigned char) Trees_String(param[0])[0]);
 					} else {
-						yyerror("error: single-character string parameter expected: %s", procName);
+						Oberon_PrintError("error: single-character string parameter expected: %s", procName);
 						exit(EXIT_FAILURE);
 					}
 					break;
@@ -5611,11 +5678,11 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					break;
 				case TREES_SET_TYPE:
 					if (IsSet(param[0])) {
-						result = Trees_NewInteger((OBNC_LONGI int) Trees_Set(param[0]));
+						result = Trees_NewInteger((OBNC_INTEGER) Trees_Set(param[0]));
 					}
 					break;
 				default:
-					yyerror("error: character parameter expected: %s", procName);
+					Oberon_PrintError("error: character parameter expected: %s", procName);
 					exit(EXIT_FAILURE);
 			}
 			if (result == NULL) {
@@ -5628,7 +5695,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateValueParameter(procName, param[0], 0);
 			ValidateIntegerParameter(procName, param[0], 0);
 			if (IsInteger(param[0])) {
-				OBNC_LONGI int i = Trees_Integer(param[0]);
+				OBNC_INTEGER i = Trees_Integer(param[0]);
 				Range_CheckCHR(i);
 				result = Trees_NewChar(OBNC_CHR(i));
 			} else {
@@ -5658,7 +5725,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 					ValidateIntegerParameter(procName, param[1], 1);
 				}
 			} else {
-				yyerror("error: set expected in substitution of parameter 1: %s", procName);
+				Oberon_PrintError("error: set expected in substitution of parameter 1: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -5666,15 +5733,8 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateProcedureKind(procName, 0, isFunctionCall);
 			ValidateParameterCount(procName, 1, 1, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
-			if (Types_IsBoolean(paramTypes[0])) {
-				result = Trees_NewNode(
-					TREES_ASSERT_PROC,
-					param[0],
-					Trees_NewNode(TREES_FILE_POSITION,
-						Trees_NewString(inputFilename),
-						Trees_NewInteger(yylineno)));
-			} else {
-				yyerror("error: boolean parameter expected: %s", procName);
+			if (! Types_IsBoolean(paramTypes[0])) {
+				Oberon_PrintError("error: boolean parameter expected: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -5683,7 +5743,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateParameterCount(procName, 1, 1, paramCount);
 			ValidateVariableParameter(procName, param[0], 0);
 			if (! Types_IsPointer(paramTypes[0])) {
-				yyerror("error: pointer parameter expected: %s", procName);
+				Oberon_PrintError("error: pointer parameter expected: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -5704,7 +5764,6 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateIntegerParameter(procName, param[1], 1);
 			break;
 		case TREES_ADR_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 1, isFunctionCall);
 			ValidateParameterCount(procName, 1, 1, paramCount);
 			ValidateVariableParameter(procName, param[0], 0);
@@ -5712,7 +5771,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			break;
 		case TREES_SIZE_PROC:
 			{
-				OBNC_LONGI int size;
+				OBNC_INTEGER size;
 
 				ValidateProcedureKind(procName, 1, isFunctionCall);
 				ValidateParameterCount(procName, 1, 1, paramCount);
@@ -5726,7 +5785,6 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			}
 			break;
 		case TREES_BIT_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 1, isFunctionCall);
 			ValidateParameterCount(procName, 2, 2, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
@@ -5739,31 +5797,28 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			resultType = Trees_NewLeaf(TREES_BOOLEAN_TYPE);
 			break;
 		case TREES_GET_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 0, isFunctionCall);
 			ValidateParameterCount(procName, 2, 2, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
 			ValidateIntegerParameter(procName, param[0], 0);
 			ValidateVariableParameter(procName, param[1], 1);
 			if (! Types_Basic(paramTypes[1])) {
-				yyerror("error: variable of basic type expected in substitution of parameter 2: %s", procName);
+				Oberon_PrintError("error: variable of basic type expected in substitution of parameter 2: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
 		case TREES_PUT_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 0, isFunctionCall);
 			ValidateParameterCount(procName, 2, 2, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
 			ValidateIntegerParameter(procName, param[0], 0);
 			ValidateValueParameter(procName, param[1], 1);
 			if (! Types_Basic(paramTypes[1]) && ! Types_IsSingleCharString(paramTypes[1])) {
-				yyerror("error: expression of basic type expected in substitution of parameter 2: %s", procName);
+				Oberon_PrintError("error: expression of basic type expected in substitution of parameter 2: %s", procName);
 				exit(EXIT_FAILURE);
 			}
 			break;
 		case TREES_COPY_PROC:
-			ValidateIntegerSize(procName);
 			ValidateProcedureKind(procName, 0, isFunctionCall);
 			ValidateParameterCount(procName, 3, 3, paramCount);
 			ValidateValueParameter(procName, param[0], 0);
@@ -5773,7 +5828,7 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			ValidateValueParameter(procName, param[2], 2);
 			ValidateIntegerParameter(procName, param[2], 2);
 			if (IsInteger(param[2]) && (Trees_Integer(param[2]) < 0)) {
-				yyerror("warning: non-negative count expected in %s: %" OBNC_INT_MOD "d", procName, Trees_Integer(param[2]));
+				Oberon_PrintError("warning: non-negative count expected in %s: %" OBNC_INT_MOD "d", procName, Trees_Integer(param[2]));
 			}
 			break;
 		case TREES_VAL_PROC:
@@ -5812,7 +5867,7 @@ static void HandleProcedureCall(Trees_Node designator, Trees_Node expList, int i
 	if (Types_IsPredeclaredProcedure(Trees_Type(ident))) {
 		*ast = PredeclaredProcedureAST(Trees_Name(ident), expList, isFunctionCall);
 		if (*ast == NULL) {
-			yyerror("error: procedure expected");
+			Oberon_PrintError("error: procedure expected");
 			exit(EXIT_FAILURE);
 		}
 	} else {
@@ -5827,11 +5882,11 @@ static void HandleProcedureCall(Trees_Node designator, Trees_Node expList, int i
 				if (resultType != NULL) {
 					Trees_SetType(resultType, *ast);
 				} else {
-					yyerror("error: function procedure expected: %s", Trees_Name(ident));
+					Oberon_PrintError("error: function procedure expected: %s", Trees_Name(ident));
 					exit(EXIT_FAILURE);
 				}
 			} else if (resultType != NULL) {
-				yyerror("error: proper procedure expected: %s", Trees_Name(ident));
+				Oberon_PrintError("error: proper procedure expected: %s", Trees_Name(ident));
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -5842,7 +5897,7 @@ static void HandleProcedureCall(Trees_Node designator, Trees_Node expList, int i
 
 static void CheckIntegerLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 {
-	OBNC_LONGI int aMin, aMax, bMin, bMax;
+	OBNC_INTEGER aMin, aMax, bMin, bMax;
 
 	if (Trees_Symbol(rangeA) == DOTDOT) {
 		aMin = Trees_Integer(Trees_Left(rangeA));
@@ -5860,10 +5915,10 @@ static void CheckIntegerLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 	}
 
 	if ((aMin >= bMin) && (aMin <= bMax)) {
-		yyerror("error: case label defined twice: %" OBNC_INT_MOD "d", aMin);
+		Oberon_PrintError("error: case label defined twice: %" OBNC_INT_MOD "d", aMin);
 		exit(EXIT_FAILURE);
 	} else if ((bMin >= aMin) && (bMin <= aMax)) {
-		yyerror("error: case label defined twice: %" OBNC_INT_MOD "d", bMin);
+		Oberon_PrintError("error: case label defined twice: %" OBNC_INT_MOD "d", bMin);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -5872,6 +5927,7 @@ static void CheckIntegerLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 static void CheckCharLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 {
 	char aMin, aMax, bMin, bMax;
+	int hasRepeatedLabel, repeatedLabel;
 
 	if (Trees_Symbol(rangeA) == DOTDOT) {
 		aMin = Trees_Char(Trees_Left(rangeA));
@@ -5889,10 +5945,20 @@ static void CheckCharLabelDisjointness(Trees_Node rangeA, Trees_Node rangeB)
 	}
 
 	if ((aMin >= bMin) && (aMin <= bMax)) {
-		yyerror("error: case label defined twice: %c", aMin);
-		exit(EXIT_FAILURE);
+		hasRepeatedLabel = 1;
+		repeatedLabel = aMin;
 	} else if ((bMin >= aMin) && (bMin <= aMax)) {
-		yyerror("error: case label defined twice: %c", bMin);
+		hasRepeatedLabel = 1;
+		repeatedLabel = bMin;
+	} else {
+		hasRepeatedLabel = 0;
+	}
+	if (hasRepeatedLabel) {
+		if (isprint(repeatedLabel)) {
+			Oberon_PrintError("error: case label defined twice: \"%c\"", repeatedLabel);
+		} else {
+			Oberon_PrintError("error: case label defined twice: 0%XX", repeatedLabel);
+		}
 		exit(EXIT_FAILURE);
 	}
 }
@@ -5921,7 +5987,7 @@ static void CheckCaseLabelUniqueness(Trees_Node newLabelRange)
 				break;
 			case IDENT:
 				if (Types_Same(definedLabelRange, newLabelRange)) {
-					yyerror("error: type case label defined twice: %s", Trees_Name(newLabelRange));
+					Oberon_PrintError("error: type case label defined twice: %s", Trees_Name(newLabelRange));
 					exit(EXIT_FAILURE);
 				}
 				break;

@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -66,6 +66,8 @@ struct ScopeDesc {
 	Scope parent;
 };
 
+static int initialized = 0;
+
 static const char *predeclaredNames[24];
 static Trees_Node predeclaredNodes[LEN(predeclaredNames)];
 
@@ -105,27 +107,38 @@ void Table_Init(void)
 	int i;
 	Trees_Node node;
 
-	assert(LEN(predecIdents) == LEN(predeclaredNames));
-	assert(LEN(predeclaredNodes) == LEN(predeclaredNames));
+	if (! initialized) {
+		initialized = 1;
 
-	for (i = 0; i < LEN(predeclaredNodes); i++) {
-		predeclaredNames[i] = predecIdents[i].name;
+		assert(LEN(predecIdents) == LEN(predeclaredNames));
+		assert(LEN(predeclaredNodes) == LEN(predeclaredNames));
 
-		node = Trees_NewIdent(predecIdents[i].name);
-		Trees_SetKind(predecIdents[i].kind, node);
-		Trees_SetType(Trees_NewLeaf(predecIdents[i].type), node);
-		predeclaredNodes[i] = node;
+		Files_Init();
+		Maps_Init();
+		Trees_Init();
+		Util_Init();
+
+		for (i = 0; i < LEN(predeclaredNodes); i++) {
+			predeclaredNames[i] = predecIdents[i].name;
+
+			node = Trees_NewIdent(predecIdents[i].name);
+			Trees_SetKind(predecIdents[i].kind, node);
+			Trees_SetType(Trees_NewLeaf(predecIdents[i].type), node);
+			predeclaredNodes[i] = node;
+		}
+
+		NEW(globalScope);
+		globalScope->symbols = Maps_New();
+		globalScope->parent = NULL;
+		currentScope = globalScope;
+
 	}
-
-	NEW(globalScope);
-	globalScope->symbols = Maps_New();
-	globalScope->parent = NULL;
-	currentScope = globalScope;
 }
 
 
 int Table_LocallyDeclared(const char name[])
 {
+	assert(initialized);
 	return Maps_HasKey(name, currentScope->symbols);
 }
 
@@ -134,6 +147,7 @@ void Table_Put(Trees_Node identNode)
 {
 	const char *name;
 
+	assert(initialized);
 	assert(identNode != NULL);
 	assert(Trees_Symbol(identNode) == IDENT);
 	assert((Trees_Local(identNode) && Table_ScopeLocal())
@@ -142,6 +156,41 @@ void Table_Put(Trees_Node identNode)
 	assert(! Table_LocallyDeclared(name));
 
 	Maps_Put(name, identNode, &(currentScope->symbols));
+}
+
+
+static char *Qualifier(const char name[])
+{
+	const char *p;
+	char *result;
+
+	p = strchr(name, '.');
+	if (p != NULL) {
+		NEW_ARRAY(result, p - name + 1);
+		memcpy(result, name, p - name);
+		result[p - name] = '\0';
+	} else {
+		result = NULL;
+	}
+	return result;
+}
+
+
+static Trees_Node ImportedIdent(const char qualifiedName[], Trees_Node qualifier)
+{
+	Trees_Node result, impIdents;
+
+	impIdents = Trees_Left(qualifier);
+	while ((impIdents != NULL)
+			&& (strcmp(Trees_Name(Trees_Left(impIdents)), qualifiedName) != 0)) {
+		impIdents = Trees_Right(impIdents);
+	}
+	if (impIdents != NULL) {
+		result = Trees_Left(impIdents);
+	} else {
+		result = NULL;
+	}
+	return result;
 }
 
 
@@ -172,16 +221,31 @@ static Trees_Node PredeclaredIdent(const char name[])
 
 Trees_Node Table_At(const char name[])
 {
-	void *result;
+	void *result, *qualifier;
+	const char *qualifierName;
 
+	assert(initialized);
 	assert(name != NULL);
 
-	result = Maps_At(name, currentScope->symbols);
-	if ((result == NULL) && (currentScope != globalScope)) {
-		result = Maps_At(name, globalScope->symbols);
-	}
-	if (result == NULL) {
-		result = PredeclaredIdent(name);
+	result = NULL;
+	qualifierName = Qualifier(name);
+	if (qualifierName != NULL) {
+		qualifier = Maps_At(qualifierName, globalScope->symbols);
+		if (qualifier != NULL) {
+			Trees_SetUsed(qualifier);
+			result = ImportedIdent(name, qualifier);
+		}
+	} else {
+		result = Maps_At(name, currentScope->symbols);
+		if ((result == NULL) && (currentScope != globalScope)) {
+			result = Maps_At(name, globalScope->symbols);
+		}
+		if ((result != NULL) && (Trees_Kind(result) != TREES_QUALIFIER_KIND)) {
+			Trees_SetUsed(result);
+		}
+		if (result == NULL) {
+			result = PredeclaredIdent(name);
+		}
 	}
 
 	assert((result == NULL) || Trees_Symbol(result) == IDENT);
@@ -194,6 +258,8 @@ void Table_OpenScope(void)
 {
 	Scope newScope;
 
+	assert(initialized);
+
 	NEW(newScope);
 	newScope->symbols = Maps_New();
 	newScope->parent = currentScope;
@@ -205,6 +271,7 @@ void Table_OpenScope(void)
 
 void Table_CloseScope(void)
 {
+	assert(initialized);
 	assert(currentScope != globalScope);
 
 	currentScope = currentScope->parent;
@@ -213,7 +280,34 @@ void Table_CloseScope(void)
 
 int Table_ScopeLocal(void)
 {
+	assert(initialized);
 	return currentScope != globalScope;
+}
+
+
+static void AddUnusedIdent(const char identName[], void *identNode, void *unusedIdentsNodePtr)
+{
+	Trees_Node ident;
+	Trees_Node *unusedIdentsPtr;
+
+	(void) identName; /*prevent "unused" warning*/
+	ident = identNode;
+	unusedIdentsPtr = (Trees_Node *) unusedIdentsNodePtr;
+	if (! Trees_Used(ident)) {
+		*unusedIdentsPtr = Trees_NewNode(TREES_NOSYM, ident, *unusedIdentsPtr);
+	}
+}
+
+
+Trees_Node Table_UnusedIdentifiers(void)
+{
+	Trees_Node result;
+
+	assert(initialized);
+	result = NULL;
+	Maps_Apply(AddUnusedIdent, currentScope->symbols, &result);
+	Trees_ReverseList(&result);
+	return result;
 }
 
 
@@ -507,6 +601,17 @@ static void ReadRecord(FILE *file, Trees_Node *resultPtr)
 }
 
 
+static int LookingAt(char ch, FILE *f)
+{
+    int ch1;
+
+    ch1 = fgetc(f);
+    ungetc(ch1, f);
+
+    return ch == ch1;
+}
+
+
 static void ReadSymbol(int symbol, int isRoot, FILE *file, Trees_Node *resultPtr)
 {
 	assert(resultPtr != NULL);
@@ -553,7 +658,7 @@ static void ReadSymbol(int symbol, int isRoot, FILE *file, Trees_Node *resultPtr
 			break;
 		case INTEGER_SYM:
 			{
-				OBNC_LONGI int i, n;
+				OBNC_INTEGER i, n;
 
 				n = fscanf(file, "%" OBNC_INT_MOD "d", &i);
 				if (n == 1) {
@@ -567,7 +672,7 @@ static void ReadSymbol(int symbol, int isRoot, FILE *file, Trees_Node *resultPtr
 			break;
 		case REAL_SYM:
 			{
-				OBNC_LONGR double x;
+				OBNC_REAL x;
 				int n;
 
 				n = fscanf(file, "%" OBNC_REAL_MOD_R "f", &x);
@@ -582,19 +687,29 @@ static void ReadSymbol(int symbol, int isRoot, FILE *file, Trees_Node *resultPtr
 			break;
 		case STRING_SYM:
 			{
-				int done, len, ch;
+				int done, len, ch, n;
 				char *s;
+				unsigned int x;
+				char ord[2];
 
 				done = 0;
-				len = StringLength(file);
-				NEW_ARRAY(s, len + 1);
 				fscanf(file, " ");
-				ch = fgetc(file);
-				if (ch == '"') {
+				if (LookingAt('"', file)) {
+					len = StringLength(file);
+					NEW_ARRAY(s, len + 1);
+					ch = fgetc(file);
 					fgets(s, len + 1, file);
 					ch = fgetc(file);
 					if (ch == '"') {
 						*resultPtr = Trees_NewString(s);
+						done = 1;
+					}
+				} else {
+					n = fscanf(file, "%xX", &x);
+					if ((n == 1) && (x <= UCHAR_MAX)) {
+						ord[0] = (unsigned char) x;
+						ord[1] = '\0';
+						*resultPtr = Trees_NewString(ord);
 						done = 1;
 					}
 				}
@@ -607,7 +722,7 @@ static void ReadSymbol(int symbol, int isRoot, FILE *file, Trees_Node *resultPtr
 			break;
 		case SET_SYM:
 			{
-				OBNC_LONGI unsigned int u;
+				unsigned OBNC_INTEGER u;
 				int n;
 
 				n = fscanf(file, "%" OBNC_INT_MOD "u", &u);
@@ -874,8 +989,9 @@ void Table_Import(const char filename[], const char module[], const char qualifi
 {
 	int ch, n;
 	Maps_Map symbolFileEntries;
-	Trees_Node ident, importEntries, p;
+	Trees_Node ident, importEntries, qualifierIdent;
 
+	assert(initialized);
 	importFilename = filename;
 	importFile = Files_Old(filename, FILES_READ);
 
@@ -911,12 +1027,9 @@ void Table_Import(const char filename[], const char module[], const char qualifi
 	Maps_Apply(SetQualifiers, symbolFileEntries, NULL);
 
 	/*import*/
-	p = importEntries;
-	while (p != NULL) {
-		ident = Trees_Left(p);
-		Table_Put(ident);
-		p = Trees_Right(p);
-	}
+	qualifierIdent = Table_At(qualifier);
+	assert(qualifierIdent != NULL);
+	Trees_SetLeft(importEntries, qualifierIdent);
 
 	Files_Close(&importFile);
 	importFile = NULL;
@@ -936,15 +1049,21 @@ void Table_ImportSystem(const char qualifier[])
 		{"VAL", TREES_VAL_PROC}};
 	const char *name;
 	int i;
-	Trees_Node ident;
+	Trees_Node importEntries, ident, qualifierIdent;
 
+	assert(initialized);
+	importEntries = NULL;
 	for (i = 0; i < LEN(procs); i++) {
 		name = Util_String("%s.%s", qualifier, procs[i].name);
 		ident = Trees_NewIdent(name);
 		Trees_SetKind(TREES_PROCEDURE_KIND, ident);
 		Trees_SetType(Trees_NewLeaf(procs[i].type), ident);
-		Table_Put(ident);
+		importEntries = Trees_NewNode(TREES_NOSYM, ident, importEntries);
 	}
+
+	qualifierIdent = Table_At(qualifier);
+	assert(qualifierIdent != NULL);
+	Trees_SetLeft(importEntries, qualifierIdent);
 }
 
 
@@ -1032,10 +1151,14 @@ static void Write(Trees_Node node, int isRoot, FILE *file, Maps_Map *indirectlyE
 				fprintf(file, "(%d %" OBNC_INT_MOD "d)", INTEGER_SYM, Trees_Integer(node));
 				break;
 			case REAL:
-				fprintf(file, "(%d %.*" OBNC_REAL_MOD_W "g)", REAL_SYM, DBL_DIG, Trees_Real(node));
+				fprintf(file, "(%d %.*" OBNC_REAL_MOD_W "G)", REAL_SYM, DBL_DIG, Trees_Real(node));
 				break;
 			case STRING:
-				fprintf(file, "(%d \"%s\")", STRING_SYM, Trees_String(node));
+				if (strlen(Trees_String(node)) <= 1) {
+					fprintf(file, "(%d 0%XX)", STRING_SYM, (unsigned char) Trees_String(node)[0]);
+				} else {
+					fprintf(file, "(%d \"%s\")", STRING_SYM, Trees_String(node));
+				}
 				break;
 			case TREES_SET_CONSTANT:
 				fprintf(file, "(%d %" OBNC_INT_MOD "u)", SET_SYM, Trees_Set(node));
@@ -1170,6 +1293,7 @@ void Table_Export(const char filename[])
 	Maps_Map indirectlyExportedTypes, nextIndirectlyExportedTypes;
 	int i;
 
+	assert(initialized);
 	assert(filename != NULL);
 
 	exportFilename = filename;

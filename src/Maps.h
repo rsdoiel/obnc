@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -20,6 +20,8 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 
 typedef struct Maps_MapDesc *Maps_Map;
 typedef void (*Maps_Applicator)(const char key[], void *value, void *data);
+
+void Maps_Init(void);
 
 Maps_Map Maps_New(void);
 

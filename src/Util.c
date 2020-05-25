@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018 Karl Landstrom <karl@miasap.se>
+/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -22,13 +22,13 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <stdarg.h>
 #include <string.h>
 
-static int initialized = 0;
+int Util_initialized = 0;
 
 void Util_Init(void)
 {
-	if (! initialized) {
+	if (! Util_initialized) {
+		Util_initialized = 1;
 		GC_INIT();
-		initialized = 1;
 	}
 }
 
@@ -40,7 +40,7 @@ char *Util_String(const char format[], ...)
 	const char *strArg;
 	char *result;
 
-	assert(initialized);
+	assert(Util_initialized);
 
 	resultLen = strlen(format) + 1;
 	va_start(args, format);
@@ -56,14 +56,15 @@ char *Util_String(const char format[], ...)
 					break;
 				case 'l':
 					if (format[i + 2] == 'd') {
+						resultLen += CHAR_BIT * sizeof (long int) / 3 + 3;
 						i++;
-						/*fall through*/
 					} else {
 						fprintf(stderr, "error: non-supported format specifier: %c\n", format[i + 1]);
 						exit(EXIT_FAILURE);
 					}
+					break;
 				case 'd':
-					resultLen += CHAR_BIT * sizeof (long int) / 3 + 3;
+					resultLen += CHAR_BIT * sizeof (int) / 3 + 3;
 					break;
 				case '%':
 					break;
@@ -94,6 +95,8 @@ const char *Util_Replace(const char old[], const char new[], const char s[])
 	char *t;
 	int newLength, count, i, j, tLen;
 	const char *p, *result;
+
+	assert(Util_initialized);
 
 	result = s;
 	count = 0;
