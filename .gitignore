@@ -1,6 +1,25 @@
 *~
-*.o
-.obnc/*
 *.bak
 .DS_Store
+# Oberon specific files
+*.sym
+*.o
+.obnc
 CONFIG
+bin/*
+lib/obnc/OBNCConfig.h
+lib/obnc/OBNCTest
+src/Config.h
+src/MapsTest
+src/TableTest
+src/UtilTest
+src/lex.yy.c
+src/lex.yy.h
+src/lex.yyTest
+src/obnc
+src/obnc-compile
+src/obnc-path
+src/obncdoc
+src/y.tab.c
+src/y.tab.h
+tests/obnc/passing
