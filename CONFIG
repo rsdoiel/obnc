@@ -1,5 +1,0 @@
-prefix=/home/rsdoiel
-libdir=lib
-useLongInt=false
-useLongReal=false
-version=0.14.0

@@ -1,2 +1,6 @@
 *~
 *.o
+.obnc/*
+*.bak
+.DS_Store
+CONFIG
