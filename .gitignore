@@ -64,4 +64,14 @@ lib/obnc/obncdoc/XYplaneTest.def
 lib/obnc/obncdoc/XYplaneTest.def.html
 lib/obnc/obncdoc/index.html
 lib/obnc/obncdoc/style.css
-
+tests/obnc/passing/A
+tests/obnc/passing/B
+tests/obnc/passing/C
+tests/obnc/passing/D
+tests/obnc/passing/OBNC
+tests/obnc/passing/T1ConstantDeclarations
+tests/obnc/passing/T2TypeDeclarations
+tests/obnc/passing/T3VariableDeclarations
+tests/obnc/passing/T4Expressions
+tests/obnc/passing/T5Statements
+tests/obnc/passing/T6ProcedureDeclarations
