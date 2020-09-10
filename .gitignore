@@ -9,6 +9,14 @@ CONFIG
 bin/*
 lib/obnc/OBNCConfig.h
 lib/obnc/OBNCTest
+lib/obnc/FilesTest
+lib/obnc/InTest
+lib/obnc/Input0Test
+lib/obnc/InputTest
+lib/obnc/MathTest
+lib/obnc/OutTest
+lib/obnc/StringsTest
+lib/obnc/XYplaneTest
 src/Config.h
 src/MapsTest
 src/TableTest
@@ -22,4 +30,3 @@ src/obnc-path
 src/obncdoc
 src/y.tab.c
 src/y.tab.h
-tests/obnc/passing
