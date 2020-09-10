@@ -1,7 +1,7 @@
 *~
 *.bak
 .DS_Store
-# Oberon specific files
+# Oberon/OBNC specific files
 *.sym
 *.o
 .obnc
