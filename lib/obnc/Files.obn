@@ -92,6 +92,10 @@ operation requires that 0 <= pos <= Length(f)*)
 (**reads the next byte x from rider r and advances r accordingly*)
 	END Read;
 
+	PROCEDURE ReadChar*(VAR r: Rider; VAR c: CHAR);
+(**reads the next character c from rider r and advances r accordingly*)
+	END ReadChar;
+
 
 	PROCEDURE ReadInt*(VAR r: Rider; VAR i: INTEGER);
 (**reads an integer i from rider r and advances r accordingly.*)

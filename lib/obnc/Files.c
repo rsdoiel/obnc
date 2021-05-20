@@ -384,6 +384,32 @@ void Files__Read_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char *x)
 	}
 }
 
+void Files__ReadChar_(Files__Rider_ *r, const OBNC_Td *rTD, char *c)
+{
+	FILE *fp;
+	int ch;
+
+	OBNC_C_ASSERT(r != NULL);
+	OBNC_C_ASSERT(r->base_ != NULL);
+	OBNC_C_ASSERT(c != NULL);
+
+	Position(r, &fp);
+	if (fp != NULL) {
+		ch = fgetc(fp);
+		if (ch != EOF) {
+			*c = (char) ch;
+			r->pos_++;
+		} else {
+			if (feof(fp)) {
+				r->eof_ = 1;
+			} else if (ferror(fp)) {
+				fprintf(stderr, "Files.Read failed: %s: %s\n", BaseName(r), strerror(errno));
+			}
+		}
+	}
+}
+
+
 
 void Files__ReadInt_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_INTEGER *i)
 {

@@ -9,6 +9,7 @@ INSTALLATION
 
 1. Make sure you have Boehm-Demers-Weiser's garbage collector GC installed on your system. To use the basic library modules Input and XYplane you also need SDL (Simple DirectMedia Layer). On a Debian system you install these dependencies with the command
 
+	apt install build-essential flex bison
 	apt install libgc-dev libsdl1.2-dev
 
 2. Compile OBNC with the command
