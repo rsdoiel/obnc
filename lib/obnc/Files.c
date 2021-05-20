@@ -633,6 +633,25 @@ void Files__Write_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char x)
 	}
 }
 
+void Files__WriteChar_(Files__Rider_ *r, const OBNC_Td *rTD, char c)
+{
+	FILE *fp;
+	int res;
+
+	OBNC_C_ASSERT(r != NULL);
+	OBNC_C_ASSERT(r->base_ != NULL);
+
+	Position(r, &fp);
+	if (fp != NULL) {
+		res = fputc(c, fp);
+		if (res != EOF) {
+			r->pos_++;
+		} else {
+			fprintf(stderr, "Files.Write failed: %s: %s\n", BaseName(r), strerror(errno));
+		}
+	}
+}
+
 
 void Files__WriteInt_(Files__Rider_ *r, const OBNC_Td *rTD, OBNC_INTEGER i)
 {

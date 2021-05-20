@@ -136,6 +136,10 @@ operation requires that 0 <= pos <= Length(f)*)
 (**writes the byte x to rider r and advances r accordingly*)
 	END Write;
 
+	PROCEDURE WriteChar*(VAR r: Rider; c: CHAR);
+(**writes the characters c to rider r and advances r accordingly*)
+	END WriteChar;
+
 
 	PROCEDURE WriteInt*(VAR r: Rider; i: INTEGER);
 (**writes the integer i to rider r and advances r accordingly*)
