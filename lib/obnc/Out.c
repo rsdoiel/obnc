@@ -55,6 +55,17 @@ void Out__Ln_(void)
 	putchar('\n');
 }
 
+void Out__Bool_(int b_)
+{
+
+	if (b_) {
+		Out__String_("true", 5);
+	}
+	else {
+		Out__String_("false", 6);
+	}
+}
+
 
 void Out__Init(void)
 {

@@ -40,9 +40,18 @@ Implements the basic library module from "The Oakwood Guidelines for Oberon-2 Co
 (**writes the real number x to the end of the output stream using an exponential form. If the textual representation of x requires m characters (including a two-digit signed exponent), x is right adjusted in a field of Max(n, m) characters padded with blanks at the left end. A plus sign of the mantissa is not written.*)
 	END Real;
 
-
 	PROCEDURE Ln*;
 (**writes an end-of-line symbol to the end of the output stream*)
 	END Ln;
+
+    PROCEDURE Bool*(b : BOOLEAN);
+(**write out the boolean value to standard out *)
+    BEGIN
+      IF b THEN
+        String("true");
+      ELSE
+        String("false");
+      END
+    END Bool;
 
 END Out.

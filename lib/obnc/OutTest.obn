@@ -37,5 +37,7 @@ BEGIN
 	Out.Real(0.0, 14); Out.Ln;
 	Out.Real(1.0, 0); Out.Ln;
 	Out.Real(37.0, 0); Out.Ln;
-	Out.Real(0.37, 0); Out.Ln
+	Out.Real(0.37, 0); Out.Ln;
+    Out.Bool(TRUE); Out.Ln;
+    Out.Bool(FALSE); Out.Ln;
 END OutTest.
