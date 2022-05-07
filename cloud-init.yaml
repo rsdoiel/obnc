@@ -2,13 +2,14 @@ package_update: true
 package_upgrade: true
 packages:
   - build-essential
+  - bison
+  - flex
   - libgc-dev
   - libsdl1.2-dev
   - git
   - autoconf
   - automake
   - curl 
-  - wget
   - tmux
   - tree
   - htop
