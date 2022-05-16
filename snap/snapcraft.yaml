@@ -11,14 +11,14 @@ description: |
 
   OBNC is created by Karl Landström, see https://miasap.se/obnc/
 
-grade: devel # must be 'stable' to release into candidate/stable channels
-confinement: devmode # use 'strict' once you have the right plugs and slots
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: strict # use 'strict' once you have the right plugs and slots
 
 parts:
   obnc-snap:
     plugin: make
     source-type: git
-    source: https://github.com:rsdoiel/obnc
+    source: https://github.com/rsdoiel/obnc
     build-packages:
       - gcc
       - make
@@ -26,3 +26,9 @@ parts:
       - flex
       - libgc-dev
       - libsdl1.2-dev
+apps:
+  obnc-snap:
+    command: obnc
+    plugs:
+      - home
+      - removable-media
