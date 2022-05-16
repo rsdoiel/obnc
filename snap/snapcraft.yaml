@@ -1,0 +1,28 @@
+name: obnc-snap # you probably want to 'snapcraft register <name>'
+base: core20 # the base snap is the execution environment for this snap
+version: '0.16.1' # just for humans, typically '1.2+git' or '1.3.2'
+summary: OBNC is an implementing the 2016 version of Oberon-07
+description: |
+  OBNC is a compiler for Niklaus Wirth’s programming language Oberon. It implements the latest version of the language from 2016. OBNC translates source code written in Oberon to the lower-level programming language C. The translated code is then compiled and linked using the C compiler and linker of the host operating system. The build command obnc performs all these tasks and keeps track of which files need to be compiled or recompiled.
+
+  The compiler is released under the GNU General Public License while the libraries are released under the Mozilla Public License. With the Mozilla license an Oberon project compiled with OBNC can be released under any license.
+
+  See the changelog for latest updates, and MD5SUMS to verify the integrity of downloaded files.
+
+  OBNC is created by Karl Landström, see https://miasap.se/obnc/
+
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: devmode # use 'strict' once you have the right plugs and slots
+
+parts:
+  obnc-snap:
+    plugin: make
+    source-type: git
+    source: https://github.com:rsdoiel/obnc
+    build-packages:
+      - gcc
+      - make
+      - bison
+      - flex
+      - libgc-dev
+      - libsdl1.2-dev
