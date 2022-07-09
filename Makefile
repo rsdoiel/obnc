@@ -4,8 +4,14 @@
 #
 HERE=$(pwd)
 
+PREFIX_OPT =
+prefix =
+ifneq ($(prefix), )
+  PREFIX_OPT = --prefix=$(prefix)
+endif
+
 build: src/*.c src/*.h
-	./build
+	./build $(PREFIX_OPT)
 
 test: .FORCE
 	./test
