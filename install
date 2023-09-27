@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+# Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -27,6 +27,7 @@ includeLibCSrc=false
 
 readonly scripts="obncdoc-extract obncdoc-index obncdoc-markup"
 readonly basicModules="Files In Input Input0 Math Out Strings XYplane"
+readonly extModules="extArgs extConvert extEnv extErr extPipes extTrap"
 readonly docFiles="oberon-report.html"
 readonly man1Files="obnc.1 obnc-compile.1 obnc-path.1 obncdoc.1"
 
@@ -86,6 +87,30 @@ Install()
 	done
 	rm -r "lib/obnc/.obnc"
 
+	#install extended library
+	mkdir -p "$destdir$prefix/include/obnc/ext"
+	mkdir -p "$destdir$prefix/$libdir/obnc/ext"
+	rm -rf "lib/obnc/ext/.obnc"
+	local module=
+	for module in $extModules; do
+		(cd "lib/obnc/ext" && env OBNC_PREFIX="$destdir$prefix" CFLAGS="-I$destdir$prefix/include" "$destdir$prefix/bin/obnc" "${module#ext}Test.obn")
+		EchoAndRun cp "lib/obnc/ext/.obnc/$module.h" "$destdir$prefix/include/obnc/ext"
+		EchoAndRun cp "lib/obnc/ext/.obnc/$module.o" "$destdir$prefix/$libdir/obnc/ext"
+		EchoAndRun cp "lib/obnc/ext/.obnc/$module.sym" "$destdir$prefix/$libdir/obnc/ext"
+		EchoAndRun cp "lib/obnc/ext/.obnc/$module.imp" "$destdir$prefix/$libdir/obnc/ext"
+		if [ -e "lib/obnc/ext/$module.env" ]; then
+			EchoAndRun cp "lib/obnc/ext/$module.env" "$destdir$prefix/$libdir/obnc/ext"
+		fi
+		if "$includeLibCSrc"; then
+			local source="lib/obnc/ext/$module.c"
+			if [ ! -e "$source" ]; then
+				source="lib/obnc/ext/.obnc/$module.c"
+			fi
+			EchoAndRun sed -e "'s|#include \"\(\.obnc/\)\?\([^.]*\)\.h\"|#include <obnc/ext/\2.h>|'" "'$source'" \> "'$destdir$prefix/$libdir/obnc/ext/$module.c'"
+		fi
+	done
+	rm -r "lib/obnc/ext/.obnc"
+
 	#install documentation
 	EchoAndRun mkdir -p "$destdir$prefix/share/doc/obnc"
 	for file in $docFiles; do
@@ -135,6 +160,14 @@ Uninstall()
 		EchoAndRun rm -f "$destdir$prefix/$libdir/obnc/$module.imp"
 		EchoAndRun rm -f "$destdir$prefix/$libdir/obnc/$module.env"
 		EchoAndRun rm -f "$destdir$prefix/$libdir/obnc/$module.c"
+	done
+	for module in $extModules; do
+		EchoAndRun rm -f "$destdir$prefix/include/obnc/ext/$module.h"
+		EchoAndRun rm -f "$destdir$prefix/$libdir/obnc/ext/$module.o"
+		EchoAndRun rm -f "$destdir$prefix/$libdir/obnc/ext/$module.sym"
+		EchoAndRun rm -f "$destdir$prefix/$libdir/obnc/ext/$module.imp"
+		EchoAndRun rm -f "$destdir$prefix/$libdir/obnc/ext/$module.env"
+		EchoAndRun rm -f "$destdir$prefix/$libdir/obnc/ext/$module.c"
 	done
 	EchoAndRun rm -f "$destdir$prefix/include/obnc/OBNC.h"
 	EchoAndRun rm -f "$destdir$prefix/include/obnc/OBNCConfig.h"

@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -17,7 +17,7 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*)
 
 MODULE T4Expressions;
 
-	IMPORT Out, SYSTEM;
+	IMPORT SYSTEM;
 
 	PROCEDURE IncReturnZero(VAR x: INTEGER): INTEGER;
 	BEGIN
@@ -41,6 +41,9 @@ MODULE T4Expressions;
 				a: ARRAY 10 OF INTEGER;
 				f: PROCEDURE (): INTEGER
 			END;
+			r: RECORD
+				mat: ARRAY 1, 2 OF INTEGER
+			END;
 
 		PROCEDURE F(): INTEGER;
 		RETURN 1
@@ -63,19 +66,25 @@ MODULE T4Expressions;
 		ASSERT(a[0].a[0] = 1);
 		a[0]^.f := F;
 		ASSERT(a[0].f() = 1);
+		r.mat[0, 1] := 1;
+		ASSERT(r.mat[0][1] = 1);
 	END TestDesignators;
 
 
 	PROCEDURE TestSetConstructors;
+		CONST
+			maxElement = SYSTEM.SIZE(INTEGER) * 8 - 1;
 		VAR
 			a, b, i, j: INTEGER;
 			A: SET;
 	BEGIN
+		A := {maxElement};
+		ASSERT(maxElement IN A);
+		A := {0 .. maxElement};
+		ASSERT(0 IN A);
+		ASSERT(maxElement IN A);
 		a := 4;
 		b := 6;
-Out.Int(ORD({1, 2, a, 5, b, 8}), 0); Out.Ln;
-Out.Int(ORD({1, 2, a..b, 8}), 0); Out.Ln;
-Out.Int(ORD({1, 2, a, 5, b, 8} = {1, 2, a..b, 8}), 0); Out.Ln;
 		ASSERT({1, 2, a, 5, b, 8} = {1, 2, a..b, 8});
 		i := 0;
 		j := 0;
@@ -478,6 +487,7 @@ Out.Int(ORD({1, 2, a, 5, b, 8} = {1, 2, a..b, 8}), 0); Out.Ln;
 		ASSERT(CHR(7FH) = ch);
 		x := 1;
 		ASSERT(CHR(x) = 1X);
+		ASSERT(CHR(0FFH) = 0FFX);
 
 		i := absConst;
 		b := oddConst;

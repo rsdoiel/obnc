@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 

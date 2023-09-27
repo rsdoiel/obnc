@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -49,7 +49,7 @@ Implements the basic library module from "The Oakwood Guidelines for Oberon-2 Co
 	END SetSize;
 
 	PROCEDURE UseColor*(color: INTEGER);
-(**sets the red, green and blue components of the drawing color as a three-byte value. NOTE: This procedure is an extension to The Oakwood Guidelines.*)
+(**sets the red, green and blue components of the drawing color as a three-byte value where red = 0FF0000H, green = 00FF00H and blue = 0000FFH. NOTE: This procedure is an extension to The Oakwood Guidelines.*)
 	END UseColor;
 
 	PROCEDURE Color*(x, y: INTEGER): INTEGER;

@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -112,20 +112,20 @@ MODULE T5Statements;
 		AssignString(str);
 		ASSERT(str = "hello");
 		AssignOpenArray("hello");
-		
+
 		strs[0] := "foo";
 		ASSERT(strs[0] = "foo");
 		strs[1] := "bar";
 		ASSERT(strs[1] = "bar");
 		strs[1] := strs[0];
 		ASSERT(strs[1] = "foo");
-		
+
 		strs[0] := "foo";
 		strs[1] := "bar";
 		strs1 := strs;
 		ASSERT(strs1[0] = "foo");
 		ASSERT(strs1[1] = "bar");
-		
+
 		AssignMultiDimOpenArray(strs2)
 	END TestArrayAssignments;
 
@@ -433,6 +433,11 @@ MODULE T5Statements;
 				n := 0
 		END;
 		ASSERT(n = 0);
+		CASE n OF
+			0: n := 1 |
+			(*empty case here*)
+		END;
+		ASSERT(n = 1);
 		ch := "u";
 		CASE ch OF
 			| 0X:
@@ -450,7 +455,8 @@ MODULE T5Statements;
 			  	sp.x := 0.0; sp.y := 0.0
 			| *)Rectangle:
 				sp.w := 1.0; sp.h := 2.0;
-				sp := sp
+				sp := sp;
+				CASE 0 OF 0: END
 			| Circle:
 				sp.r := 1.0
 		END;
@@ -489,6 +495,15 @@ MODULE T5Statements;
 		END;
 		ASSERT(n = 1);
 		ASSERT(n1 = 1);
+		n := 0;
+		WHILE n < 1 DO
+			INC(n, 1)
+		ELSIF n < 2 DO
+			INC(n, 2)
+		ELSIF n < 4 DO
+			INC(n, 4)
+		END;
+		ASSERT(n = 7)
 	END TestWhileStatements;
 
 

@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -194,7 +194,7 @@ static void ExportSymbolTable(const char symfilePath[]);
 %type <integer> relation
 %type <node> RepeatStatement
 %type <node> ResultTypeOpt
-%type <node> ReturnExpressionOpt
+%type <node> ReturnClauseOpt
 %type <node> selector
 %type <node> SelectorOptRep
 %type <node> set
@@ -1006,15 +1006,14 @@ SelectorOptRep:
 		Trees_Node curr;
 
 		if ((Trees_Symbol($2) == '[') && (Trees_Right($2) != NULL)) { /*multi-dimensional element selector*/
-			/*attatch last element selector node to $1*/
 			Trees_ReverseList(&$2);
-			$$ = $1;
+			/*append $1 to $2*/
 			curr = $2;
 			do {
-				$$ = Trees_NewNode('[', Trees_Left(curr), $$);
 				curr = Trees_Right(curr);
-			} while (curr != NULL);
-			Trees_ReverseList(&$$);
+			} while (Trees_Right(curr) != NULL);
+			Trees_SetRight($1, curr);
+			$$ = $2;
 		} else {
 			$$ = Trees_NewNode(Trees_Symbol($2), Trees_Left($2), $1);
 		}
@@ -1105,7 +1104,7 @@ element:
 		if (IsInteger($1)) {
 			i = Trees_Integer($1);
 			Range_CheckSetElement(i);
-			$$ = Trees_NewSet(1u << i);
+			$$ = Trees_NewSet((unsigned OBNC_INTEGER) 1 << i);
 		} else if (Types_IsInteger(type)) {
 			$$ = Trees_NewNode(TREES_SINGLE_ELEMENT_SET, $1, NULL);
 			Trees_SetType(Trees_NewLeaf(TREES_SET_TYPE), $$);
@@ -1222,9 +1221,12 @@ ProcedureCall:
 		if (Trees_Symbol($1) == TREES_PROCEDURE_CALL) {
 			designator = Trees_Left($1);
 			actualParameters = Trees_Right($1);
-		} else {
+		} else if (Types_IsProcedure(Trees_Type($1))) { /*procedure variable without parameters*/
 			designator = $1;
 			actualParameters = NULL;
+		} else {
+			Oberon_PrintError("error: procedure expected");
+			YYABORT;
 		}
 		HandleProcedureCall(designator, actualParameters, isFunctionCall, &$$);
 		assert($$ != NULL);
@@ -1326,12 +1328,12 @@ CaseStatement:
 		}
 		assert(caseLabelsStack != NULL);
 		caseLabelsStack = Trees_Right(caseLabelsStack);
+		caseExpressionStack = Trees_Right(caseExpressionStack);
 		expType = Trees_Type($2);
 		if (Types_IsRecord(expType) || Types_IsPointer(expType)) {
 			/*reset original type*/
 			caseVariable = Trees_Left($2);
 			Trees_SetType(Trees_Type($2), caseVariable);
-			caseExpressionStack = Trees_Right(caseExpressionStack);
 		}
 		$$ = Trees_NewNode(CASE, $2, $4);
 	}
@@ -1387,13 +1389,9 @@ CaseRep:
 	| CaseRep '|' case
 	{
 		if ($3 != NULL) {
-			if ($1 != NULL) {
-				$$ = Trees_NewNode(TREES_CASE_REP, $3, $1);
-			} else {
-				$$ = Trees_NewNode(TREES_CASE_REP, $3, NULL);
-			}
+			$$ = Trees_NewNode(TREES_CASE_REP, $3, $1);
 		} else {
-			$$ = NULL;
+			$$ = $1;
 		}
 	}
 	;
@@ -1597,7 +1595,23 @@ label:
 WhileStatement:
 	WHILE guard DO StatementSequence ElseIfDoOptRep END
 	{
-		$$ = Trees_NewNode(WHILE, $2, Trees_NewNode(DO, $4, $5));
+		Trees_Node currElsif, currExp, currThen, currStmt;
+
+		if ($5 == NULL) {
+			$$ = Trees_NewNode(WHILE, $2, Trees_NewNode(DO, $4, NULL));
+		} else {
+			/*correct order of elsif nodes*/
+			$$ = NULL;
+			currElsif = $5;
+			do {
+				currExp = Trees_Left(currElsif);
+				currThen = Trees_Right(currElsif);
+				currStmt = Trees_Left(currThen);
+				$$ = Trees_NewNode(ELSIF, currExp, Trees_NewNode(THEN, currStmt, $$));
+				currElsif = Trees_Right(currThen);
+			} while (currElsif != NULL);
+			$$ = Trees_NewNode(WHILE, $2, Trees_NewNode(THEN, $4, $$));
+		}
 	}
 	;
 
@@ -1710,7 +1724,7 @@ ByOpt:
 /*PROCEDURE DECLARATION RULES*/
 
 ProcedureDeclaration:
-	ProcedureHeading ';' DeclarationSequence StatementSequenceOpt ReturnExpressionOpt END IDENT
+	ProcedureHeading ';' DeclarationSequence StatementSequenceOpt ReturnClauseOpt END IDENT
 	{
 		Trees_Node procIdent, procType, resultType, procStatements, returnExp;
 		const char *procName;
@@ -1725,7 +1739,7 @@ ProcedureDeclaration:
 		if (strcmp(procName, $7) == 0) {
 			if (resultType == NULL) {
 				if (returnExp != NULL) {
-					Oberon_PrintError("error: unexpected return expression");
+					Oberon_PrintError("error: unexpected return clause in proper procedure");
 					YYABORT;
 				}
 			} else {
@@ -1736,7 +1750,7 @@ ProcedureDeclaration:
 						returnExp = Trees_NewChar(Trees_String(returnExp)[0]);
 					}
 				} else {
-					Oberon_PrintError("error: return expression expected");
+					Oberon_PrintError("error: return clause expected in function procedure");
 					YYABORT;
 				}
 			}
@@ -1806,7 +1820,7 @@ StatementSequenceOpt:
 	}
 	;
 
-ReturnExpressionOpt:
+ReturnClauseOpt:
 	RETURN expression
 	{
 		$$ = $2;
@@ -2147,8 +2161,31 @@ ImportRep:
 	}
 	| ImportRep ',' import
 	{
+		const char *importName;
+		Trees_Node p;
+		int moduleImported;
+
 		if ($3 != NULL) {
-			$$ = Trees_NewNode(TREES_NOSYM, $3, $1);
+			/*check if the module has already been imported (with a different qualifier)*/
+			p = $1;
+			if (parseMode == OBERON_IMPORT_LIST_MODE) {
+				importName = Trees_Name($3);
+				while ((p != NULL) && (strcmp(Trees_Name(Trees_Left(p)), importName) != 0)) {
+					p = Trees_Right(p);
+				}
+			} else {
+				importName = Trees_Name(Trees_Left($3));
+				while ((p != NULL) && (strcmp(Trees_Name(Trees_Left(Trees_Left(p))), importName) != 0)) {
+					p = Trees_Right(p);
+				}
+			}
+			moduleImported = p != NULL;
+
+			if (! moduleImported) {
+				$$ = Trees_NewNode(TREES_NOSYM, $3, $1);
+			} else {
+				$$ = $1;
+			}
 		} else {
 			$$ = $1;
 		}
@@ -2176,51 +2213,48 @@ import:
 		if (strcmp(module, inputModuleName) != 0) {
 			if (! Maps_HasKey(module, importedModules)) {
 				Maps_Put(module, NULL, &importedModules);
-				qualifierSym = Table_At(qualifier);
-				if (qualifierSym == NULL) {
-					qualifierSym = Trees_NewIdent(qualifier);
-					if ($2 != NULL) {
-						Trees_SetUnaliasedName(module, qualifierSym);
+			}
+			qualifierSym = Table_At(qualifier);
+			if (qualifierSym == NULL) {
+				qualifierSym = Trees_NewIdent(qualifier);
+				if ($2 != NULL) {
+					Trees_SetUnaliasedName(module, qualifierSym);
+				}
+				Trees_SetKind(TREES_QUALIFIER_KIND, qualifierSym);
+				Table_Put(qualifierSym);
+
+				if (strcmp(module, "SYSTEM") == 0) {
+					if (parseMode != OBERON_IMPORT_LIST_MODE) {
+						Table_ImportSystem(qualifier);
 					}
-					Trees_SetKind(TREES_QUALIFIER_KIND, qualifierSym);
-					Table_Put(qualifierSym);
-
-					if (strcmp(module, "SYSTEM") == 0) {
-						if (parseMode != OBERON_IMPORT_LIST_MODE) {
-							Table_ImportSystem(qualifier);
+				} else if (parseMode == OBERON_IMPORT_LIST_MODE) {
+					$$ = Trees_NewIdent(module);
+				} else {
+					moduleDirPath = ModulePaths_Directory(module, ".", 0);
+					if (moduleDirPath != NULL) {
+						/*import identifiers into the symbol table*/
+						symbolFileDir = Util_String("%s/.obnc", moduleDirPath);
+						if (! Files_Exists(symbolFileDir)) {
+							symbolFileDir = Util_String("%s", moduleDirPath);
 						}
-					} else if (parseMode == OBERON_IMPORT_LIST_MODE) {
-						$$ = Trees_NewIdent(module);
-					} else {
-						moduleDirPath = ModulePaths_Directory(module, ".", 0);
-						if (moduleDirPath != NULL) {
-							/*import identifiers into the symbol table*/
-							symbolFileDir = Util_String("%s/.obnc", moduleDirPath);
-							if (! Files_Exists(symbolFileDir)) {
-								symbolFileDir = Util_String("%s", moduleDirPath);
-							}
-							symbolFileName = Util_String("%s/%s.sym", symbolFileDir, module);
-							if (Files_Exists(symbolFileName)) {
-								Table_Import(symbolFileName, module, qualifier);
-							} else {
-								Oberon_PrintError("error: symbol file not found for module %s: %s", module, symbolFileName);
-								YYABORT;
-							}
-
-							moduleIdent = Trees_NewIdent(module);
-							Trees_SetKind(TREES_QUALIFIER_KIND, moduleIdent);
-							$$ = Trees_NewNode(TREES_NOSYM, moduleIdent, Trees_NewString(moduleDirPath));
+						symbolFileName = Util_String("%s/%s.sym", symbolFileDir, module);
+						if (Files_Exists(symbolFileName)) {
+							Table_Import(symbolFileName, module, qualifier);
 						} else {
-							Oberon_PrintError("error: imported module not found: %s", module);
+							Oberon_PrintError("error: symbol file not found for module %s: %s", module, symbolFileName);
 							YYABORT;
 						}
+
+						moduleIdent = Trees_NewIdent(module);
+						Trees_SetKind(TREES_QUALIFIER_KIND, moduleIdent);
+						$$ = Trees_NewNode(TREES_NOSYM, moduleIdent, Trees_NewString(moduleDirPath));
+					} else {
+						Oberon_PrintError("error: imported module not found: %s", module);
+						YYABORT;
 					}
-				} else {
-					Oberon_PrintError("error: qualifier already used: %s", qualifier);
-					YYABORT;
 				}
 			} else {
-				Oberon_PrintError("error: module already imported: %s", module);
+				Oberon_PrintError("error: qualifier already used: %s", qualifier);
 				YYABORT;
 			}
 		} else {
@@ -2577,6 +2611,22 @@ static int IsDesignator(Trees_Node exp)
 }
 
 
+static int IsVariable(Trees_Node exp)
+{
+	int result = 0;
+
+	if (IsDesignator(exp)) {
+		switch (Trees_Kind(BaseIdent(exp))) {
+			case TREES_VARIABLE_KIND:
+			case TREES_VALUE_PARAM_KIND:
+			case TREES_VAR_PARAM_KIND:
+				result = 1;
+		}
+	}
+	return result;
+}
+
+
 static int IsValueExpression(Trees_Node exp)
 {
 	int result = 1;
@@ -2749,51 +2799,56 @@ static void SetSelectorTypes(Trees_Node identType, Trees_Node designator, int *p
 				} else if (Types_IsRecord(currTypeStruct) || Types_IsPointer(currTypeStruct)) {
 					/*type guard*/
 					expList = Trees_Left(currSelector);
-					if (Trees_Right(expList) == NULL) {
-						if ((Trees_Symbol(Trees_Left(expList)) == TREES_DESIGNATOR)
-								&& (Trees_Right(Trees_Left(expList)) == NULL)) {
-							extendedType = Trees_Left(Trees_Left(expList));
-							symbol = Table_At(Trees_Name(extendedType));
-							if (symbol != NULL) {
-								if (Trees_Kind(symbol) == TREES_TYPE_KIND) {
-									if ((Types_IsRecord(currType) && Types_IsRecord(Trees_Type(symbol))
-												&& (Trees_Kind(BaseIdent(designator)) == TREES_VAR_PARAM_KIND))
-											|| (Types_IsPointer(currType) && Types_IsPointer(Trees_Type(symbol)))) {
-										if (Types_Extends(currType, Trees_Type(symbol))) {
-											Trees_SetLeft(extendedType, currSelector);
-											Trees_SetType(extendedType, currSelector);
-											currType = extendedType;
+					if (expList != NULL) {
+						if (Trees_Right(expList) == NULL) {
+							if ((Trees_Symbol(Trees_Left(expList)) == TREES_DESIGNATOR)
+									&& (Trees_Right(Trees_Left(expList)) == NULL)) {
+								extendedType = Trees_Left(Trees_Left(expList));
+								symbol = Table_At(Trees_Name(extendedType));
+								if (symbol != NULL) {
+									if (Trees_Kind(symbol) == TREES_TYPE_KIND) {
+										if ((Types_IsRecord(currType) && Types_IsRecord(Trees_Type(symbol))
+													&& (Trees_Kind(BaseIdent(designator)) == TREES_VAR_PARAM_KIND))
+												|| (Types_IsPointer(currType) && Types_IsPointer(Trees_Type(symbol)))) {
+											if (Types_Extends(currType, Trees_Type(symbol))) {
+												Trees_SetLeft(extendedType, currSelector);
+												Trees_SetType(extendedType, currSelector);
+												currType = extendedType;
+											} else {
+												Oberon_PrintError("error: extended type expected: %s", Trees_Name(extendedType));
+												exit(EXIT_FAILURE);
+											}
 										} else {
-											Oberon_PrintError("error: extended type expected: %s", Trees_Name(extendedType));
-											exit(EXIT_FAILURE);
+											if (Types_IsRecord(currType)) {
+												if (Trees_Kind(BaseIdent(designator)) != TREES_VAR_PARAM_KIND) {
+													Oberon_PrintError("error: variable parameter expected in type guard");
+												} else {
+													Oberon_PrintError("error: record type expected in type guard: %s", Trees_Name(extendedType));
+												}
+												exit(EXIT_FAILURE);
+											} else {
+												Oberon_PrintError("error: pointer type expected in type guard: %s", Trees_Name(extendedType));
+												exit(EXIT_FAILURE);
+											}
 										}
 									} else {
-										if (Types_IsRecord(currType)) {
-											if (Trees_Kind(BaseIdent(designator)) != TREES_VAR_PARAM_KIND) {
-												Oberon_PrintError("error: variable parameter expected in type guard");
-											} else {
-												Oberon_PrintError("error: record type expected in type guard: %s", Trees_Name(extendedType));
-											}
-											exit(EXIT_FAILURE);
-										} else {
-											Oberon_PrintError("error: pointer type expected in type guard: %s", Trees_Name(extendedType));
-											exit(EXIT_FAILURE);
-										}
+										Oberon_PrintError("error: type name expected: %s", Trees_Name(extendedType));
+										exit(EXIT_FAILURE);
 									}
 								} else {
-									Oberon_PrintError("error: type name expected: %s", Trees_Name(extendedType));
+									Oberon_PrintError("error: undeclared identifier: %s", Trees_Name(extendedType));
 									exit(EXIT_FAILURE);
 								}
 							} else {
-								Oberon_PrintError("error: undeclared identifier: %s", Trees_Name(extendedType));
+								Oberon_PrintError("error: identifier expected in type guard");
 								exit(EXIT_FAILURE);
 							}
 						} else {
-							Oberon_PrintError("error: identifier expected in type guard");
+							Oberon_PrintError("error: unexpected comma in type guard");
 							exit(EXIT_FAILURE);
 						}
 					} else {
-						Oberon_PrintError("error: unexpected comma in type guard");
+						Oberon_PrintError("error: missing identifier in type guard");
 						exit(EXIT_FAILURE);
 					}
 				} else {
@@ -3358,13 +3413,14 @@ static void ValidateAssignment(Trees_Node expression, Trees_Node targetType, int
 	assert(targetType != NULL);
 	assert(context >= 0);
 	assert(paramPos >= 0);
+
 	if (Types_AssignmentCompatible(expression, targetType)) {
 		if (Types_IsByte(targetType) && IsInteger(expression)) {
 			Range_CheckByte(Trees_Integer(expression));
 		}
 	} else {
 		errorContext = AssignmentErrorContext(context, paramPos);
-		if (IsString(expression) && Types_IsCharacterArray(targetType) && !Types_IsOpenArray(targetType)) {
+		if (IsString(expression) && Types_IsCharacterArray(targetType) && ! Types_IsOpenArray(targetType)) {
 			Oberon_PrintError("error: string too long in %s: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", errorContext, Types_StringLength(Trees_Type(expression)), Trees_Integer(Types_ArrayLength(targetType)));
 			exit(EXIT_FAILURE);
 		} else if (Types_IsPredeclaredProcedure(Trees_Type(expression))
@@ -3395,15 +3451,9 @@ static void ValidateActualParameter(Trees_Node actualParam, Trees_Node formalPar
 				exit(EXIT_FAILURE);
 			}
 		} else if (Trees_Kind(formalParam) == TREES_VALUE_PARAM_KIND) {
-			if (! Types_AssignmentCompatible(actualParam, formalType)) {
-				if (Types_IsString(actualType) && Types_IsCharacterArray(formalType)) {
-					Oberon_PrintError("error: string too long in substitution of parameter %d: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", paramPos + 1, Types_StringLength(actualType), Trees_Integer(Types_ArrayLength(formalType)));
-				} else {
-					Oberon_PrintError("error: assignment incompatible types in substitution of parameter %d in %s: %s -> %s", paramPos + 1, DesignatorString(procDesignator), TypeString(actualType), TypeString(formalType));
-				}
-				exit(EXIT_FAILURE);
-			}
-		} else if (Trees_Kind(formalParam) == TREES_VAR_PARAM_KIND) {
+			ValidateAssignment(actualParam, formalType, PARAM_SUBST_CONTEXT, paramPos);
+		} else {
+			assert(Trees_Kind(formalParam) == TREES_VAR_PARAM_KIND);
 			if (Types_IsRecord(formalType)) {
 				if (Types_IsRecord(actualType)) {
 					if (! Types_Extends(formalType, actualType)) {
@@ -3422,8 +3472,13 @@ static void ValidateActualParameter(Trees_Node actualParam, Trees_Node formalPar
 			}
 		}
 	} else {
-		Oberon_PrintError("error: writable variable expected in substitution of parameter %d in %s",
-			paramPos + 1, DesignatorString(procDesignator));
+		if (IsDesignator(actualParam)) {
+			Oberon_PrintError("error: writable variable expected in substitution of parameter %d in %s",
+				paramPos + 1, DesignatorString(procDesignator));
+		} else {
+			Oberon_PrintError("error: variable expected in substitution of parameter %d in %s",
+				paramPos + 1, DesignatorString(procDesignator));
+		}
 		exit(EXIT_FAILURE);
 	}
 }
@@ -3956,6 +4011,9 @@ static Trees_Node PredeclaredProcedureAST(const char procName[], Trees_Node expL
 			if (IsConstExpression(param[1])) {
 				result = param[1];
 				Trees_SetType(resultType, result);
+			} else if (! IsVariable(param[1])) {
+				Oberon_PrintError("error: OBNC only supports variable parameters in %s", procName);
+				exit(EXIT_FAILURE);
 			}
 			break;
 		default:

@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -524,16 +524,19 @@ static void GenerateFlattenedArrayLength(Trees_Node arrayType, Trees_Node varIde
 	assert(Trees_Symbol(varIdent) == IDENT);
 	assert(dim >= 0);
 
+	if (Types_IsArray(Types_ElementType(arrayType))) {
+		fprintf(file, "(size_t) ");
+	}
+	i = -1;
 	type = arrayType;
-	i = 0;
-	while (Types_IsArray(type)) {
+	do {
+		i++;
 		if (i > 0) {
 			fprintf(file, " * ");
 		}
 		GenerateArrayLength(type, varIdent, dim + i, file);
 		type = Types_ElementType(type);
-		i++;
-	}
+	} while (Types_IsArray(type));
 }
 
 
@@ -1362,6 +1365,10 @@ static void GenerateArrayIndex(Trees_Node var, Trees_Node indexSelector, FILE *f
 	arrayType = Trees_Type(indexSelector);
 	assert(Types_IsArray(arrayType));
 
+	if (Types_IsArray(Types_ElementType(arrayType))) {
+		fprintf(file, "(size_t) ");
+	}
+
 	selector = indexSelector;
 	currArrayType = arrayType;
 	dim = 0;
@@ -1419,18 +1426,61 @@ static void GenerateDesignatorVar(Trees_Node ident, FILE *file)
 }
 
 
-static void GenerateDesignatorRec(Trees_Node des, Trees_Node selector, FILE *file)
+static void GenerateDesignatorUpTo(Trees_Node selector, Trees_Node des, FILE *file);
+
+static void GenerateTypeGuard(Trees_Node selector, Trees_Node des, FILE *file)
 {
-	Trees_Node field, fieldIdent, fieldBaseType, typeIdent, prevSelector, firstDimSelector;
+	Trees_Node typeIdent;
+
+	typeIdent = Trees_Left(selector);
+
+	fprintf(file, "(*((");
+	Generate(typeIdent, file, 0);
+	if (Types_IsRecord(typeIdent)) {
+		fprintf(file, "*) OBNC_RTT(&(");
+	} else {
+		fprintf(file, "*) OBNC_PTT(&(");
+	}
+	GenerateDesignatorUpTo(PrevSelector(des, selector), des, file);
+	fprintf(file, "), ");
+	if (Types_IsRecord(typeIdent)) {
+		if ((Trees_Kind(EntireVar(des)) == TREES_VAR_PARAM_KIND) && (selector == NextSelector(des))) {
+			GenerateIdent(EntireVar(des), file, 0);
+			fprintf(file, "td");
+		} else {
+			fprintf(file, "&");
+			GenerateIdent(TypeDescIdent(Trees_Type(selector)), file, 0);
+			fprintf(file, "td");
+		}
+	} else {
+		assert(Types_IsPointer(typeIdent));
+		fprintf(file, "OBNC_TD(");
+		GenerateDesignatorUpTo(PrevSelector(des, selector), des, file);
+		fprintf(file, ", struct ");
+		Generate(TypeDescIdent(Trees_Type(selector)), file, 0);
+		fprintf(file, "Heap)");
+	}
+	fprintf(file, ", &");
+	Generate(TypeDescIdent(typeIdent), file, 0);
+	fprintf(file, "id, %d, %d)))", Types_ExtensionLevel(typeIdent), Trees_LineNumber(des));
+}
+
+
+static void GenerateDesignatorUpTo(Trees_Node selector, Trees_Node des, FILE *file)
+{
+	Trees_Node field, fieldBaseType, fieldIdent, firstDimSelector, prevSelector, typeGuardSelector;
 	int castNeeded;
 
 	if (selector == NULL) {
-		if ((caseVariable != NULL) && (caseLabelType != NULL) && (EntireVar(des) == caseVariable) && ! Types_Same(Trees_Type(caseVariable), caseLabelType)) {
-			fprintf(file, "(*((");
-			Generate(caseLabelType, file, 0);
-			fprintf(file, " *) &");
-			GenerateDesignatorVar(EntireVar(des), file);
-			fprintf(file, "))");
+		if ((caseVariable != NULL)
+				&& (caseLabelType != NULL)
+				&& (EntireVar(des) == caseVariable)
+				&& ! Types_Same(Trees_Type(caseVariable), caseLabelType)
+				&& (Trees_Right(des) == NULL || (Trees_Symbol(Trees_Right(des)) != '('))) {
+			typeGuardSelector = Trees_NewNode('(', caseLabelType, NULL);
+			Trees_SetType(caseLabelType, typeGuardSelector);
+			Trees_SetRight(typeGuardSelector, des);
+			GenerateTypeGuard(typeGuardSelector, des, file);
 		} else {
 			GenerateDesignatorVar(EntireVar(des), file);
 		}
@@ -1443,7 +1493,7 @@ static void GenerateDesignatorRec(Trees_Node des, Trees_Node selector, FILE *fil
 					firstDimSelector = prevSelector;
 					prevSelector = PrevSelector(des, prevSelector);
 				}
-				GenerateDesignatorRec(des, prevSelector, file);
+				GenerateDesignatorUpTo(prevSelector, des, file);
 				fprintf(file, "[");
 				GenerateArrayIndex(des, firstDimSelector, file);
 				fprintf(file, "]");
@@ -1460,7 +1510,7 @@ static void GenerateDesignatorRec(Trees_Node des, Trees_Node selector, FILE *fil
 					}
 					fprintf(file, ") &");
 				}
-				GenerateDesignatorRec(des, PrevSelector(des, selector), file);
+				GenerateDesignatorUpTo(PrevSelector(des, selector), des, file);
 				if (castNeeded) {
 					fprintf(file, "))");
 				}
@@ -1469,41 +1519,11 @@ static void GenerateDesignatorRec(Trees_Node des, Trees_Node selector, FILE *fil
 				break;
 			case '^':
 				fprintf(file, "(*OBNC_PT(");
-				GenerateDesignatorRec(des, PrevSelector(des, selector), file);
+				GenerateDesignatorUpTo(PrevSelector(des, selector), des, file);
 				fprintf(file, ", %d))", Trees_LineNumber(des));
 				break;
 			case '(':
-				typeIdent = Trees_Left(selector);
-
-				fprintf(file, "(*((");
-				Generate(typeIdent, file, 0);
-				if (Types_IsRecord(typeIdent)) {
-					fprintf(file, "*) OBNC_RTT(&(");
-				} else {
-					fprintf(file, "*) OBNC_PTT(&(");
-				}
-				GenerateDesignatorRec(des, PrevSelector(des, selector), file);
-				fprintf(file, "), ");
-				if (Types_IsRecord(typeIdent)) {
-					if ((Trees_Kind(EntireVar(des)) == TREES_VAR_PARAM_KIND) && (selector == NextSelector(des))) {
-						GenerateIdent(EntireVar(des), file, 0);
-						fprintf(file, "td");
-					} else {
-						fprintf(file, "&");
-						GenerateIdent(TypeDescIdent(Trees_Type(selector)), file, 0);
-						fprintf(file, "td");
-					}
-				} else {
-					assert(Types_IsPointer(typeIdent));
-					fprintf(file, "OBNC_TD(");
-					GenerateDesignatorRec(des, PrevSelector(des, selector), file);
-					fprintf(file, ", struct ");
-					Generate(TypeDescIdent(Trees_Type(selector)), file, 0);
-					fprintf(file, "Heap)");
-				}
-				fprintf(file, ", &");
-				Generate(TypeDescIdent(typeIdent), file, 0);
-				fprintf(file, "id, %d, %d)))", Types_ExtensionLevel(typeIdent), Trees_LineNumber(des));
+				GenerateTypeGuard(selector, des, file);
 				break;
 			default:
 				assert(0);
@@ -1514,7 +1534,7 @@ static void GenerateDesignatorRec(Trees_Node des, Trees_Node selector, FILE *fil
 
 static void GenerateDesignator(Trees_Node des, FILE *file)
 {
-	GenerateDesignatorRec(des, LastSelector(des), file);
+	GenerateDesignatorUpTo(LastSelector(des), des, file);
 }
 
 

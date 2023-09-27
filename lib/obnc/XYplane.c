@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,7 +25,7 @@ OBNC_INTEGER XYplane__H_ = 0;
 static OBNC_INTEGER customWidth;
 static OBNC_INTEGER customHeight;
 
-static Uint32 colors[2] = {0, 0xffffff};
+static Uint32 color = 0xffffff;
 
 static void CalculatePlaneSize(int useFullscreen, int *width, int *height)
 {
@@ -135,11 +135,8 @@ void XYplane__Clear_(void)
 
 void XYplane__Dot_(OBNC_INTEGER x, OBNC_INTEGER y, OBNC_INTEGER mode)
 {
-	OBNC_C_ASSERT(mode >= 0);
-	OBNC_C_ASSERT(mode < LEN(colors));
-
 	if ((plane != NULL) && WITHIN_BOUNDS(x, y)) {
-		*PIXEL_PTR(x, y) = colors[mode];
+		*PIXEL_PTR(x, y) = color * mode;
 	}
 }
 
@@ -194,9 +191,9 @@ void XYplane__SetSize_(OBNC_INTEGER width, OBNC_INTEGER height)
 }
 
 
-void XYplane__UseColor_(OBNC_INTEGER color)
+void XYplane__UseColor_(OBNC_INTEGER c)
 {
-	colors[1] = color;
+	color = c;
 }
 
 

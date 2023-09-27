@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+# Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -72,10 +72,9 @@ BuildCSource()
 
 Build()
 {
+	local version=
 	if [ -e "VERSION" ]; then
-		local version="$(cat VERSION)"
-	else
-		local version=
+		version="$(cat VERSION)"
 	fi
 
 	#generate configuration file for install script
@@ -144,6 +143,10 @@ Build()
 			esac
 			echo "#endif"
 			echo
+			echo "#ifndef OBNC_CONFIG_NO_GC"
+			echo "#define OBNC_CONFIG_NO_GC 0"
+			echo "#endif"
+			echo
 			echo "#ifndef OBNC_CONFIG_TARGET_EMB"
 			echo "#define OBNC_CONFIG_TARGET_EMB 0"
 			echo "#endif"
@@ -208,6 +211,7 @@ Clean()
 	rm -f src/?*Test
 	rm -f src/*.exe
 	rm -f src/*.o
+	rm -fr src/.obnc
 	rm -f src/Config.h
 
 	rm -f lib/obnc/?*Test
@@ -215,6 +219,11 @@ Clean()
 	rm -f lib/obnc/*.o
 	rm -fr lib/obnc/.obnc
 	rm -f lib/obnc/OBNCConfig.h
+
+	rm -f lib/obnc/ext/?*Test
+	rm -f lib/obnc/ext/*.exe
+	rm -f lib/obnc/ext/*.o
+	rm -fr lib/obnc/ext/.obnc
 }
 
 
@@ -254,7 +263,7 @@ PathAbsolute()
 {
 	local path="$1"
 
-	test "${prefix#/}" != "$prefix" || test "${prefix#[A-Za-z]:}" != "$prefix"
+	test "${path#/}" != "$path" || test "${path#[A-Za-z]:}" != "$path"
 }
 
 

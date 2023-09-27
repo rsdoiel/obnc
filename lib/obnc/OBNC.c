@@ -1,11 +1,11 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.*/
 
 #include "OBNC.h"
-#if ! OBNC_CONFIG_TARGET_EMB
+#if ! (OBNC_CONFIG_NO_GC || OBNC_CONFIG_TARGET_EMB)
 	#include <gc/gc.h>
 #endif
 #include <assert.h>
@@ -81,39 +81,66 @@ void OBNC_Init(int argc, char *argv[])
 	OBNC_argc = argc;
 	OBNC_argv = argv;
 	OBNC_handleTrap = ExitTrapWithMessage;
-#if ! OBNC_CONFIG_TARGET_EMB
+#if ! (OBNC_CONFIG_NO_GC || OBNC_CONFIG_TARGET_EMB)
 	GC_INIT();
 #endif
 }
 
 
-void *OBNC_Allocate(size_t size, int kind)
-{
-	void *result = NULL;
+#if OBNC_CONFIG_TARGET_EMB
 
-#if ! OBNC_CONFIG_TARGET_EMB
-	switch (kind) {
-		case OBNC_REGULAR_ALLOC:
-			result = GC_MALLOC(size); /*initializes memory to zero like calloc*/
-			break;
-		case OBNC_ATOMIC_ALLOC:
-			result = GC_MALLOC_ATOMIC(size);
-			if (result != NULL) {
-				memset(result, 0, size);
-			}
-			break;
-		case OBNC_ATOMIC_NOINIT_ALLOC:
-			result = GC_MALLOC_ATOMIC(size); /*no initialization*/
-			break;
-		default:
-			OBNC_C_ASSERT(0);
+	void *OBNC_Allocate(size_t size, int kind)
+	{
+		OBNC_C_ASSERT(0);
+		return NULL;
 	}
-#else
-	OBNC_C_ASSERT(0);
-#endif
-	return result;
-}
 
+#elif OBNC_CONFIG_NO_GC
+
+	void *OBNC_Allocate(size_t size, int kind)
+	{
+		void *result = NULL;
+
+		switch (kind) {
+			case OBNC_REGULAR_ALLOC:
+			case OBNC_ATOMIC_ALLOC:
+				result = calloc(size, 1);
+				break;
+			case OBNC_ATOMIC_NOINIT_ALLOC:
+				result = malloc(size);
+				break;
+			default:
+				OBNC_C_ASSERT(0);
+		}
+		return result;
+	}
+
+#else
+
+	void *OBNC_Allocate(size_t size, int kind)
+	{
+		void *result = NULL;
+
+		switch (kind) {
+			case OBNC_REGULAR_ALLOC:
+				result = GC_MALLOC(size); /*initializes memory to zero like calloc*/
+				break;
+			case OBNC_ATOMIC_ALLOC:
+				result = GC_MALLOC_ATOMIC(size);
+				if (result != NULL) {
+					memset(result, 0, size);
+				}
+				break;
+			case OBNC_ATOMIC_NOINIT_ALLOC:
+				result = GC_MALLOC_ATOMIC(size); /*no initialization*/
+				break;
+			default:
+				OBNC_C_ASSERT(0);
+		}
+		return result;
+	}
+
+#endif
 
 OBNC_INTEGER OBNC_It1(OBNC_INTEGER i, OBNC_INTEGER n, const char file[], int line)
 {
@@ -231,4 +258,16 @@ void OBNC_Unpk(OBNC_REAL *x, OBNC_INTEGER *n)
 	*n = (OBNC_INTEGER) t;
 	*x += *x;
 	(*n)--;
+}
+
+
+int OBNC_Terminated(const char s[], OBNC_INTEGER sLen)
+{
+	OBNC_INTEGER i;
+
+	i = 0;
+	while ((i < sLen) && (s[i] != '\0')) {
+		i++;
+	}
+	return i < sLen;
 }

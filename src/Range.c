@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -116,8 +116,8 @@ void Range_CheckCHR(OBNC_INTEGER n)
 {
 	if (n < 0) {
 		Oberon_PrintError("warning: negative parameter in CHR: %" OBNC_INT_MOD "d", n);
-	} else if (n > CHAR_MAX) {
-		Oberon_PrintError("warning: parameter in CHR too large for conversion: %" OBNC_INT_MOD "d > %d", n, CHAR_MAX);
+	} else if (n > UCHAR_MAX) {
+		Oberon_PrintError("warning: parameter in CHR too large for conversion: %" OBNC_INT_MOD "d > %d", n, UCHAR_MAX);
 	}
 }
 
@@ -163,9 +163,11 @@ void Range_CheckRealProd(OBNC_REAL x, OBNC_REAL y)
 void Range_CheckByte(OBNC_INTEGER n)
 {
 	if (n < 0) {
-		Oberon_PrintError("warning: value less than BYTE minimum: %" OBNC_INT_MOD "d < 0", n);
+		Oberon_PrintError("error: value less than BYTE minimum: %" OBNC_INT_MOD "d < 0", n);
+		exit(EXIT_FAILURE);
 	} else if (n > UCHAR_MAX) {
-		Oberon_PrintError("warning: BYTE maximum exceeded: %" OBNC_INT_MOD "d > %d", n, UCHAR_MAX);
+		Oberon_PrintError("error: BYTE maximum exceeded: %" OBNC_INT_MOD "d > %d", n, UCHAR_MAX);
+		exit(EXIT_FAILURE);
 	}
 }
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+# Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -23,7 +23,7 @@ readonly selfDirPath="$(cd "$(dirname "$0")"; pwd -P)"
 
 export OBNC_PREFIX="$selfDirPath"
 export OBNC_LIBDIR="lib"
-export CC="${CC:-}"
+export CC="${CC:-cc}"
 export CFLAGS="${CFLAGS:-} -I$selfDirPath/lib"
 #export LDLIBS=
 #if grep -q 'useGC=true' "$selfDirPath/CONFIG"; then
@@ -57,26 +57,28 @@ Test()
 	EchoAndRun cd "$selfDirPath/bin"
 	for test in ?*-test; do
 		echo "./$test"
-		"./$test" >/dev/null
+		"./$test"
 	done
 
-	#test basic library
-	EchoAndRun cd "$selfDirPath/lib/obnc"
-	rm -fr ".obnc"
-	local failure=false
-	for test in ?*Test.obn; do
-		#if-command prevents script from halting upon a missing non-required C library, like SDL
-		if "$selfDirPath/bin/obnc" "$test" >/dev/null; then
-			if { [ "$test" != "InputTest.obn" ] && [ "$test" != "XYplaneTest.obn" ] ; } || [ "${DEV_ENV:-}" = 1 ]; then
-				if [ -e "${test%.obn}.sh" ]; then
-					EchoAndRun "./${test%.obn}.sh"
-				else
-					EchoAndRun "./${test%.obn}"
+	#test libraries
+	for lib in "$selfDirPath/lib/obnc" "$selfDirPath/lib/obnc/ext"; do
+		EchoAndRun cd "$lib"
+		rm -fr ".obnc"
+		local failure=false
+		for test in ?*Test.obn; do
+			#if-command prevents script from halting upon a missing non-required C library, like SDL
+			if "$selfDirPath/bin/obnc" "$test" >/dev/null; then
+				if { [ "$test" != "InputTest.obn" ] && [ "$test" != "XYplaneTest.obn" ] ; } || [ "${DEV_ENV:-}" = 1 ]; then
+					if [ -e "${test%.obn}.sh" ]; then
+						EchoAndRun "./${test%.obn}.sh"
+					else
+						EchoAndRun "./${test%.obn}"
+					fi
 				fi
+			else
+				failure=true
 			fi
-		else
-			failure=true
-		fi
+		done
 	done
 
 	if ! "$failure"; then

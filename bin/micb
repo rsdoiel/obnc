@@ -6,7 +6,7 @@
 #
 #Builds an executable with MODULE.c as entry point. Imported modules are compiled or recompiled as needed. For any module M, compiler, compiler flags, link flags and link libraries specific to M can be specified by setting the variables CC, CFLAGS, LDFLAGS and LDLIBS respectively in a file named M.env.
 
-# Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+# Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -109,7 +109,7 @@ Compile()
 	local compileCommand="$moduleCC -c -o $module.o $CFLAGS $moduleCFLAGS $module.c"
 	compileCommand="$(echo "$compileCommand" | sed 's/   */ /g')"
 	echo "$compileCommand"
-	$compileCommand
+	eval $compileCommand
 }
 
 
@@ -226,7 +226,7 @@ Link()
 	local linkCommand="$CC -o $exeFile $ldflags $LDFLAGS $objectFileArgs $ldlibs $LDLIBS"
 	linkCommand="$(echo "$linkCommand" | sed 's/   */ /g')"
 	echo "$linkCommand"
-	$linkCommand
+	eval $linkCommand
 }
 
 

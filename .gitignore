@@ -75,3 +75,4 @@ tests/obnc/passing/T3VariableDeclarations
 tests/obnc/passing/T4Expressions
 tests/obnc/passing/T5Statements
 tests/obnc/passing/T6ProcedureDeclarations
+tmp

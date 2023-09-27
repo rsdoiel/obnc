@@ -1,0 +1,42 @@
+(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+
+This file is part of OBNC.
+
+OBNC is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+OBNC is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*)
+
+MODULE T5ChangedTypeInTypeCase;
+
+	TYPE
+		T0 = POINTER TO RECORD END;
+		T1 = POINTER TO RECORD (T0) f: INTEGER END;
+
+	VAR
+		x, x0: T0;
+		x1: T1;
+
+	PROCEDURE AssignX0ToX;
+	BEGIN
+		x := x0
+	END AssignX0ToX;
+
+BEGIN
+	NEW(x0);
+	NEW(x1);
+	x := x1;
+	CASE x OF
+		T1:
+			AssignX0ToX;
+			x.f := 0 (*dynamic type of x is T0 so field selection should be trapped*)
+	END
+END T5ChangedTypeInTypeCase.

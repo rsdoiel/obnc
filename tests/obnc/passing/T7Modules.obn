@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -19,7 +19,9 @@ MODULE T7Modules;
 
 	IMPORT
 		A,
+		A1 := A,
 		B1 := B,
+		B2 := B,
 		B := C,
 		D := D,
 		E,
@@ -38,13 +40,14 @@ MODULE T7Modules;
 		list: A.List;
 		matrix: ARRAY 2, 3 OF INTEGER;
 		x0: B.P0;
-		x1: B1.P1;
+		x1: B2.P1;
 		t: B1.T;
 		p: B1.P1;
 		p1: ListExt;
 
 BEGIN
 	ASSERT(A.boolConst);
+	ASSERT(A1.boolConst);
 	ASSERT(A.charConst = CHR(22H));
 	ASSERT(A.intConst = 1);
 	ASSERT(A.realConst = 2.3);
@@ -73,7 +76,7 @@ BEGIN
 	x0 := x1;
 	A.S(t);
 	A.S1(p);
-	
+
 	ASSERT(D.b);
 	ASSERT(E.b);
 	ASSERT(T7Modules.b);

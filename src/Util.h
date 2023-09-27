@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -20,17 +20,21 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include <gc/gc.h>
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define LEN(arr) ((int) (sizeof (arr) / sizeof (arr)[0]))
 
 #define NEW_ARRAY(ptr, n) \
 	{ \
 		assert(Util_initialized); \
+		assert((n) >= 0); \
+		assert((size_t) (n) <= ((size_t) -1) / sizeof (ptr)[0]); \
 		(ptr) = GC_MALLOC((size_t) (n) * sizeof (ptr)[0]); \
 		if ((ptr) == NULL) { \
-			fputs("error: Memory exhausted\n", stderr); \
+			fprintf(stderr, "Memory allocation using GC_MALLOC failed: %s\n", strerror(errno)); \
 			exit(EXIT_FAILURE); \
 		} \
 	}
@@ -38,9 +42,11 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 #define RENEW_ARRAY(ptr, n) \
 	{ \
 		assert(Util_initialized); \
+		assert((n) >= 0); \
+		assert((size_t) (n) <= ((size_t) -1) / sizeof (ptr)[0]); \
 		(ptr) = GC_REALLOC((ptr), (size_t) (n) * sizeof (ptr)[0]); \
 		if ((ptr) == NULL) { \
-			fputs("error: Memory exhausted\n", stderr); \
+			fprintf(stderr, "Memory allocation using GC_REALLOC failed: %s\n", strerror(errno)); \
 			exit(EXIT_FAILURE); \
 		} \
 	}

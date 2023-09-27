@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -42,7 +42,7 @@ struct ModuleNode {
 
 static const char *executableFile;
 static int verbosity;
-static int crossCompilationEnabled;
+static int buildUnified; /*if true, compile and link all C files in one command*/
 
 static int startTime;
 static int obncCompileTotalTime;
@@ -389,8 +389,16 @@ static void CompileC(const char module[], const char dir[])
 	if (verbosity == 2) {
 		puts(command);
 	}
-	if ((strstr(cFlags, "OBNC_CONFIG_TARGET_EMB=") != NULL) && ! crossCompilationEnabled) {
-		Error_Handle("OBNC_CONFIG_TARGET_EMB can only be used with option -x");
+	if (! buildUnified) {
+		if (strstr(cFlags, "OBNC_CONFIG_NO_GC=") != NULL) {
+			Error_Handle("OBNC_CONFIG_NO_GC can only be used with option -x");
+		}
+		if (strstr(cFlags, "OBNC_CONFIG_TARGET_EMB=") != NULL) {
+			Error_Handle("OBNC_CONFIG_TARGET_EMB can only be used with option -x");
+		}
+	} else if ((strstr(cFlags, "OBNC_CONFIG_NO_GC=") != NULL)
+			&& (strstr(cFlags, "OBNC_CONFIG_TARGET_EMB=") != NULL)) {
+		Error_Handle("OBNC_CONFIG_NO_GC and OBNC_CONFIG_TARGET_EMB cannot be used simultaneously");
 	}
 	start = Time();
 	error = system(command);
@@ -411,7 +419,7 @@ static void Compile(const char module[], const char dir[], int oberonCompilation
 	if (oberonCompilationNeeded) {
 		CompileOberon(module, dir, isEntryPoint);
 	}
-	if (! crossCompilationEnabled) {
+	if (! buildUnified) {
 		CompileC(module, dir);
 	}
 }
@@ -456,7 +464,7 @@ static void UpdateObjectFile(const char module[], const char dir[], int stale, i
 	}
 
 	cCompilationNeeded = 0;
-	if (! crossCompilationEnabled) {
+	if (! buildUnified) {
 		if (oberonCompilationNeeded
 				|| ! Files_Exists(objectFile)
 				|| (! Files_Exists(nonGenCFile) && (Files_Timestamp(objectFile) < Files_Timestamp(genCFile)))
@@ -585,7 +593,7 @@ static char *CCInputFile(const char module[], const char dir[])
 	char *result;
 
 	found = 0;
-	if (crossCompilationEnabled) {
+	if (buildUnified) {
 		result = Util_String("%s%s.c", AsPrefix(dir), module);
 		found = Files_Exists(result);
 		if (! found) {
@@ -613,7 +621,6 @@ static void DeleteArg(const char arg[], char argList[])
 
 	assert(arg != NULL);
 	assert(argList != NULL);
-
 	argLen = strlen(arg);
 	if (argLen > 0) {
 		p = strstr(argList, arg);
@@ -632,25 +639,26 @@ static void DeleteArg(const char arg[], char argList[])
 
 static void CreateExecutable(const char *inputFiles[], int inputFilesLen)
 {
-	int embedded, keysLen, i, j, error, start;
+	int keysLen, i, j, error, start;
 	char **keys, **values;
 	char *ldLibs;
 	const char *cc, *cFlags, *includePath, *ldFlags, *inputFileArgs, *module, *envFileDir, *envFile, *command;
 
 	cc = CCompiler();
 
-	embedded = 0;
-	if (crossCompilationEnabled) {
+	/*get options from environment variables*/
+	cFlags = "";
+	if (buildUnified) {
+		cc = getenv("CC");
+		if (cc == NULL) {
+			cc = CCompiler();
+		}
 		cFlags = getenv("CFLAGS");
-		if (cFlags != NULL) {
-			embedded = strstr(cFlags, "OBNC_CONFIG_TARGET_EMB=1") != NULL;
-		} else {
+		if (cFlags == NULL) {
 			cFlags = "";
 		}
 		includePath = Util_String("%s/include", Config_Prefix());
 		cFlags = Util_String("-I %s %s", Paths_ShellArg(includePath), cFlags);
-	} else {
-		cFlags = "";
 	}
 	ldFlags = getenv("LDFLAGS");
 	if (ldFlags == NULL) {
@@ -660,6 +668,8 @@ static void CreateExecutable(const char *inputFiles[], int inputFilesLen)
 	if (ldLibs == NULL) {
 		ldLibs = Util_String("%s", "");
 	}
+
+	/*get options from env files*/
 	inputFileArgs = "";
 	for (i = 0; i < inputFilesLen; i++) {
 		module = Paths_SansSuffix(Paths_Basename(inputFiles[i]));
@@ -671,7 +681,15 @@ static void CreateExecutable(const char *inputFiles[], int inputFilesLen)
 		if (Files_Exists(envFile)) {
 			ReadEnvFile(envFile, &keys, &values, &keysLen);
 			for (j = 0; j < keysLen; j++) {
-				if (strcmp(keys[j], "LDFLAGS") == 0) {
+				if (strcmp(keys[j], "CC") == 0) {
+					if (buildUnified && (i == inputFilesLen - 1)) { /*env file for entry point module*/
+						cc = Util_String("%s", values[j]);
+					}
+				} else if (strcmp(keys[j], "CFLAGS") == 0) {
+					if (buildUnified) {
+						cFlags = Util_String("%s %s", cFlags, values[j]);
+					}
+				} else if (strcmp(keys[j], "LDFLAGS") == 0) {
 					ldFlags = Util_String("%s %s", ldFlags, values[j]);
 				} else if (strcmp(keys[j], "LDLIBS") == 0) {
 					ldLibs = Util_String("%s %s", ldLibs, values[j]);
@@ -680,11 +698,15 @@ static void CreateExecutable(const char *inputFiles[], int inputFilesLen)
 		}
 		inputFileArgs = Util_String("%s %s", inputFileArgs, Paths_ShellArg(inputFiles[i]));
 	}
-	if (embedded) {
-		DeleteArg("-lgc", ldLibs);
-		DeleteArg("-lm", ldLibs);
-	}
 
+	if (buildUnified) {
+		if ((strstr(cFlags, "OBNC_CONFIG_NO_GC=1") != NULL)
+				|| (strstr(cFlags, "OBNC_CONFIG_TARGET_EMB=1") != NULL)) {
+			DeleteArg("-lgc", ldLibs);
+		} else if (strstr(cFlags, "OBNC_CONFIG_TARGET_EMB=1") != NULL) {
+			DeleteArg("-lm", ldLibs);
+		}
+	}
 	command = Util_String("%s -o %s %s %s %s %s", cc, Paths_ShellArg(executableFile), cFlags, ldFlags, inputFileArgs, ldLibs);
 	if (verbosity == 1) {
 		printf("Creating executable %s\n", executableFile);
@@ -693,7 +715,7 @@ static void CreateExecutable(const char *inputFiles[], int inputFilesLen)
 	}
 	start = Time();
 	error = system(command);
-	if (crossCompilationEnabled) {
+	if (buildUnified) {
 		ccTotalTime = Time() - start;
 	} else {
 		ccLinkTotalTime += Time() - start;
@@ -711,7 +733,7 @@ static void PrintTimeFractions(int startTime)
 
 	elapsedTotal = Time() - startTime;
 	obncCompilePercent = (int) ((double) obncCompileTotalTime / (double) elapsedTotal * 100.0 + 0.5);
-	if (crossCompilationEnabled) {
+	if (buildUnified) {
 		ccPercent = (int) ((double) ccTotalTime / (double) elapsedTotal * 100.0 + 0.5);
 		obncPercent = 100 - obncCompilePercent - ccPercent;
 	} else {
@@ -726,7 +748,7 @@ static void PrintTimeFractions(int startTime)
 	printf("------------------------\n");
 	printf("obnc %18d%%\n", obncPercent);
 	printf("obnc-compile %10d%%\n", obncCompilePercent);
-	if (crossCompilationEnabled) {
+	if (buildUnified) {
 		printf("%s %*d%%\n", cc, 22 - (int) strlen(cc), ccPercent);
 	} else {
 		printf("%s compile %*d%%\n", cc, 14 - (int) strlen(cc), ccCompilePercent);
@@ -754,7 +776,7 @@ static void Build(const char oberonFile[])
 	}
 	assert(ccInputFilesLen >= 2);
 
-	if (crossCompilationEnabled) {
+	if (buildUnified) {
 		coreLibFile = Util_String("%s/%s/obnc/OBNC.c", Config_Prefix(), Config_LibDir());
 		if (! Files_Exists(coreLibFile)) {
 			coreLibFile = Util_String("%s/%s/obnc/OBNC.o", Config_Prefix(), Config_LibDir());
@@ -774,7 +796,7 @@ static void Build(const char oberonFile[])
 	}
 
 	newestCCModule = NewestFile(ccInputFiles, ccInputFilesLen);
-	if (! Files_Exists(executableFile) || (Files_Timestamp(executableFile) < Files_Timestamp(newestCCModule)) || crossCompilationEnabled) {
+	if (! Files_Exists(executableFile) || (Files_Timestamp(executableFile) < Files_Timestamp(newestCCModule)) || buildUnified) {
 		CreateExecutable(ccInputFiles, ccInputFilesLen);
 		if (verbosity == 2) {
 			PrintTimeFractions(startTime);
@@ -867,7 +889,7 @@ int main(int argc, char *argv[])
 		} else if (strcmp(arg, "-V") == 0) {
 			VSet = 1;
 		} else if (strcmp(arg, "-x") == 0) {
-			crossCompilationEnabled = 1;
+			buildUnified = 1;
 		} else if (arg[0] == '-') {
 			Error_Handle(Util_String("invalid option: `%s'", arg));
 		} else if (inputFile == NULL) {

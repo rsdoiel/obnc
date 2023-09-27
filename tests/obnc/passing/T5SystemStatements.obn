@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -87,6 +87,12 @@ MODULE T5SystemStatements;
 		SYSTEM.PUT(SYSTEM.ADR(xs), SYSTEM.VAL(BYTE, 37));
 		ASSERT(xs[0] = 37);
 		ASSERT(xs[1] = 2);
+		IF SYSTEM.SIZE(REAL) = SYSTEM.SIZE(INTEGER) THEN
+			r := 3.14;
+			i := SYSTEM.VAL(INTEGER, r);
+			r1 := SYSTEM.VAL(REAL, i);
+			ASSERT(r1 = r)
+		END;
 
 		(*silence "unused" compiler notifications*)
 		x := byte;

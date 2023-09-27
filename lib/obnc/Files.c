@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -56,18 +56,6 @@ static int FileExists(const char name[])
 }
 
 
-static void CheckTermination(const char s[], OBNC_INTEGER sLen)
-{
-	OBNC_INTEGER i;
-
-	i = 0;
-	while ((i < sLen) && (s[i] != '\0')) {
-		i++;
-	}
-	OBNC_C_ASSERT(i < sLen);
-}
-
-
 static File NewFile(FILE *file, const char name[], int registered)
 {
 	File result;
@@ -97,9 +85,7 @@ Files__File_ Files__Old_(const char name[], OBNC_INTEGER nameLen)
 	FILE *file;
 	File result;
 
-	OBNC_C_ASSERT(name != NULL);
-	OBNC_C_ASSERT(nameLen >= 0);
-	CheckTermination(name, nameLen);
+	OBNC_C_ASSERT(OBNC_Terminated(name, nameLen));
 
 	file = fopen(name, "r+b");
 	if (file == NULL) {
@@ -122,9 +108,7 @@ Files__File_ Files__New_(const char name[], OBNC_INTEGER nameLen)
 	FILE *file;
 	File result;
 
-	OBNC_C_ASSERT(name != NULL);
-	OBNC_C_ASSERT(nameLen >= 0);
-	CheckTermination(name, nameLen);
+	OBNC_C_ASSERT(OBNC_Terminated(name, nameLen));
 
 	file = tmpfile();
 	if (file != NULL) {
@@ -221,9 +205,7 @@ void Files__Purge_(Files__File_ file)
 
 void Files__Delete_(const char name[], OBNC_INTEGER nameLen, OBNC_INTEGER *res)
 {
-	OBNC_C_ASSERT(name != NULL);
-	OBNC_C_ASSERT(nameLen >= 0);
-	CheckTermination(name, nameLen);
+	OBNC_C_ASSERT(OBNC_Terminated(name, nameLen));
 
 	*res = unlink(name);
 	if (*res != 0) {
@@ -234,12 +216,8 @@ void Files__Delete_(const char name[], OBNC_INTEGER nameLen, OBNC_INTEGER *res)
 
 void Files__Rename_(const char old[], OBNC_INTEGER oldLen, const char new[], OBNC_INTEGER newLen, OBNC_INTEGER *res)
 {
-	OBNC_C_ASSERT(old != NULL);
-	OBNC_C_ASSERT(oldLen >= 0);
-	CheckTermination(old, oldLen);
-	OBNC_C_ASSERT(new != NULL);
-	OBNC_C_ASSERT(newLen >= 0);
-	CheckTermination(new, newLen);
+	OBNC_C_ASSERT(OBNC_Terminated(old, oldLen));
+	OBNC_C_ASSERT(OBNC_Terminated(new, newLen));
 
 	*res = rename(old, new);
 	if (*res != 0) {
@@ -685,9 +663,7 @@ void Files__WriteString_(Files__Rider_ *r, const OBNC_Td *rTD, const char s[], O
 
 	OBNC_C_ASSERT(r != NULL);
 	OBNC_C_ASSERT(r->base_ != NULL);
-	OBNC_C_ASSERT(s != NULL);
-	OBNC_C_ASSERT(sLen >= 0);
-	CheckTermination(s, sLen);
+	OBNC_C_ASSERT(OBNC_Terminated(s, sLen));
 
 	Position(r, &fp);
 	if (fp != NULL) {
@@ -760,6 +736,13 @@ void Files__WriteBytes_(Files__Rider_ *r, const OBNC_Td *rTD, unsigned char buf[
 			fprintf(stderr, "Files.WriteBytes failed: %s: %s\n", BaseName(r), strerror(errno));
 		}
 	}
+}
+
+
+void Files__GetError_(char msg[], OBNC_INTEGER msgLen)
+{
+	strncpy(msg, strerror(errno), msgLen);
+	msg[msgLen - 1] = '\0';
 }
 
 

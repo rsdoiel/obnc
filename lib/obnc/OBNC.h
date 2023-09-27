@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -218,7 +218,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.*/
 #endif
 
 #ifndef OBNC_VAL
-	#define OBNC_VAL(T, n) ((T) (n))
+	/*NOTE: may require C compiler option -fno-strict-aliasing or similar*/
+	#define OBNC_VAL(T, n) (*(T *) &(n))
 #endif
 
 /*Type descriptor accessor*/
@@ -240,7 +241,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.*/
 		(unsigned OBNC_INTEGER) ((((unsigned OBNC_INTEGER) -2) << (n)) ^ (((unsigned OBNC_INTEGER) -1)) << (m)): \
 		(unsigned OBNC_INTEGER) 0x0u)
 
-#define OBNC_IN(x, A) ((int) ((((unsigned OBNC_INTEGER) 1) << (x)) & (A)))
+#define OBNC_IN(x, A) (((((unsigned OBNC_INTEGER) 1) << (x)) & (A)) != 0)
 
 /*Structured assignments*/
 
@@ -334,5 +335,7 @@ void OBNC_Unpk(OBNC_REAL *x, OBNC_INTEGER *n);
 void OBNC_WriteInt(OBNC_INTEGER x, OBNC_INTEGER n, FILE *f);
 
 void OBNC_WriteHex(unsigned OBNC_INTEGER x, FILE *f);
+
+int OBNC_Terminated(const char s[], OBNC_INTEGER sLen);
 
 #endif

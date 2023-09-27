@@ -1,4 +1,4 @@
-/*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -52,6 +52,28 @@ char *Paths_Basename(const char path[])
 
 	return Util_String("%s", basename(Util_String("%s", path)));
 }
+
+
+char *Paths_Suffix(const char path[])
+{
+	const char *suffix;
+	int i, n;
+
+	assert(path != NULL);
+
+	n = strlen(path);
+	i = n - 1;
+	while ((i >= 0) && (path[i] != '.') && (path[i] != '/') & (path[i] != '\\')) {
+		i--;
+	}
+	if ((i > 0) && (path[i] == '.') && (path[i - 1] != '/') && (path[i - 1] != '\\')) {
+		suffix = path + i;
+	} else {
+		suffix = path + n;
+	}
+	return Util_String("%s", suffix);
+}
+
 
 
 char *Paths_SansSuffix(const char path[])

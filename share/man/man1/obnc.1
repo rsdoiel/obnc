@@ -59,6 +59,8 @@ Options for the C compiler. The following constants can be customized with the f
 Controls the size of type INTEGER and SET. The value is OBNC_CONFIG_SHORT, OBNC_CONFIG_INT, OBNC_CONFIG_LONG or OBNC_CONFIG_LONG_LONG.
 .IP OBNC_CONFIG_C_REAL_TYPE
 Controls the size of type REAL. The value is OBNC_CONFIG_FLOAT, OBNC_CONFIG_DOUBLE or OBNC_CONFIG_LONG_DOUBLE.
+.IP OBNC_CONFIG_NO_GC
+Value 1 builds an executable without the garbage collector. Calls to NEW invokes the standard memory allocation functions in C instead. This option can be used if the program does not use dynamic memory allocation or if the total size of the allocated memory is bounded.
 .IP OBNC_CONFIG_TARGET_EMB
 Value 1 builds an executable for a freestanding execution environment (embedded platform). With this option the C main function takes no parameters. The garbage collector is disabled and any call to NEW is invalidated. The executable is not linked with the math library libm.
 .RE

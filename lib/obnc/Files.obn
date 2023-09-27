@@ -1,4 +1,4 @@
-(*Copyright (C) 2017, 2018, 2019 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -166,5 +166,12 @@ operation requires that 0 <= pos <= Length(f)*)
 	PROCEDURE WriteBytes*(VAR r: Rider; VAR buf: ARRAY OF BYTE; n: INTEGER);
 (**writes the first n bytes from buf to rider r and advances r accordingly. r.res contains the number of bytes that could not be written (e.g., due to a disk full error).*)
 	END WriteBytes;
+
+
+	PROCEDURE GetError*(VAR msg: ARRAY OF CHAR);
+(**returns in msg the error message of the last failing file operation
+
+NOTE: This procedure is an extension to the Oakwood Guidelines.*)
+	END GetError;
 
 END Files.
