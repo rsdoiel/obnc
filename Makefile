@@ -22,6 +22,7 @@ install: .FORCE
 
 clean:
 	if [ -f obnc-snap_0.16.1_amd64.snap ]; then rm obnc-snap_0.16.1_amd64.snap; fi
+	if [ -f obnc-snap_0.17.0_amd64.snap ]; then rm obnc-snap_0.17.0_amd64.snap; fi
 	./build clean-all
 
 .FORCE:
