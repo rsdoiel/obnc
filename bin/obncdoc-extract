@@ -342,20 +342,18 @@ END {
 			hasExportedIdent = 1
 		}
 	}
-	if (! hasExportedIdent) {
-		sub("\n+$", "\n", output["MODULE"])
-	}
-
-	for (i = 1; i <= sectionsLen; i++) {
-		section = sections[i]
-		if (sectionExported[section]) {
-			printf "%s", output[section]
-		} else if (sectionHasExportedComment[section]) {
-			#account for exported comment preceeding an exported procedure
-			sub("^[ \t]*" section "[ \t\n]*\n", "", output[section])
-			printf "%s", output[section]
+	if (hasExportedIdent) {
+		for (i = 1; i <= sectionsLen; i++) {
+			section = sections[i]
+			if (sectionExported[section]) {
+				printf "%s", output[section]
+			} else if (sectionHasExportedComment[section]) {
+				#account for exported comment preceeding an exported procedure
+				sub("^[ \t]*" section "[ \t\n]*\n", "", output[section])
+				printf "%s", output[section]
+			}
 		}
-	}
 
-	print "END " moduleIdent "."
+		print "END " moduleIdent "."
+	}
 }

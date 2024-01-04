@@ -172,6 +172,19 @@ static void CreateHtmlDefinition(const char module[], const char inputFile[], co
 }
 
 
+static int FileEmpty(const char filename[])
+{
+	FILE *f;
+	int ch, result;
+
+	f = Files_Old(filename, FILES_READ);
+	ch = fgetc(f);
+	result = ch == EOF;
+	Files_Close(&f);
+	return result;
+}
+
+
 static void CreateDefinition(const char filename[], Accumulator *acc)
 {
 	const char *oberonFile, *module, *textOutputFile, *htmlOutputFile, *scriptFile, *command;
@@ -190,7 +203,14 @@ static void CreateDefinition(const char filename[], Accumulator *acc)
 			command = Util_String("awk -f %s < %s > %s", Paths_ShellArg(scriptFile), oberonFile, textOutputFile);
 			error = system(command);
 			if (! error) {
-				CreateHtmlDefinition(module, textOutputFile, htmlOutputFile);
+				if (! FileEmpty(textOutputFile)) {
+					CreateHtmlDefinition(module, textOutputFile, htmlOutputFile);
+				} else {
+					Files_Remove(textOutputFile);
+					if (Files_Exists(htmlOutputFile)) {
+						Files_Remove(htmlOutputFile);
+					}
+				}
 			} else {
 				Error_Handle("");
 			}
@@ -266,25 +286,6 @@ static int StringComparison(const void *a, const void *b)
 }
 
 
-static int DefFileEmpty(const char filename[])
-{
-	FILE *f;
-	int ch, newlineCount;
-
-	f = Files_Old(filename, FILES_READ);
-	newlineCount = 0;
-	ch = fgetc(f);
-	while ((ch != EOF) && (newlineCount <= 2)) {
-		if (ch == '\n') {
-			newlineCount++;
-		}
-		ch = fgetc(f);
-	}
-	Files_Close(&f);
-	return newlineCount == 2;
-}
-
-
 static void CreateIndex(void)
 {
 	const char *indexFilename = "obncdoc/index.html", *defFilename, *module;
@@ -317,10 +318,8 @@ static void CreateIndex(void)
 	fputs("		<pre>\n", indexFile);
 	for (i = 0; i < filenamesLen; i++) {
 		defFilename = acc.filenames[i];
-		if (! DefFileEmpty(Util_String("obncdoc/%s", defFilename))) {
-			module = Paths_SansSuffix(Paths_Basename(defFilename));
-			fprintf(indexFile, "DEFINITION <a href='%s.def.html'>%s</a>\n", module, module);
-		}
+		module = Paths_SansSuffix(Paths_Basename(defFilename));
+		fprintf(indexFile, "DEFINITION <a href='%s.def.html'>%s</a>\n", module, module);
 	}
 	fputs("		</pre>\n", indexFile);
 	PrintHtmlFooter(indexFile);

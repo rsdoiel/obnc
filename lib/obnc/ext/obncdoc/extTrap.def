@@ -1,0 +1,54 @@
+DEFINITION extTrap;
+(*Customization of trap handler
+
+The trap handler is called if any of the following exceptions occur:
+
+	1 = destination array too short for assignment
+	2 = array index out of bounds
+	3 = nil pointer dereference
+	4 = nil procedure variable call
+	5 = source in assignment is not an extension of target
+	6 = type guard failure
+	7 = unmatched expression in case statement
+	8 = assertion failure
+*)
+
+	TYPE
+		Handler = PROCEDURE (exception: INTEGER; file: ARRAY OF CHAR; line: INTEGER);
+(*trap handler signature, where `exception' is the exception code, and `file' and `line' is the location in the source where the exception occurred*)
+
+	VAR
+		handle: Handler; (*current trap handler*)
+
+	PROCEDURE SetHandler(h: Handler);
+(*sets the trap handler to h, which must not be NIL.*)
+
+(*Example:
+
+MODULE traptest;
+
+	IMPORT Err := extErr, Trap := extTrap;
+
+	VAR
+		i: INTEGER;
+		a: ARRAY 10 OF INTEGER;
+
+	PROCEDURE PrintError(exception: INTEGER; file: ARRAY OF CHAR; line: INTEGER);
+	BEGIN
+		IF exception = 2 THEN
+			Err.String("Ouch! We have stepped outside of an array in ");
+			Err.String(file);
+			Err.String(" at line ");
+			Err.Int(line, 0);
+			Err.Ln
+		END
+	END PrintError;
+
+BEGIN
+	Trap.SetHandler(PrintError);
+	i := 10;
+	a[i] := 0
+END traptest.
+*)
+
+END extTrap.

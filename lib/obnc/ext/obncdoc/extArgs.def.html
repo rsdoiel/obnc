@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+	<head>
+		<meta name='viewport' content='width=device-width, initial-scale=1.0' />
+		<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+		<title>DEFINITION extArgs</title>
+		<link rel='stylesheet' type='text/css' href='style.css' />
+	</head>
+	<body>
+		<p><a href='index.html'>Index</a></p>
+
+		<pre>
+DEFINITION <em>extArgs</em>;
+<span class='comment'>(*Access to program arguments.*)</span>
+
+	VAR
+		count: INTEGER; <span class='comment'>(*number of arguments*)</span>
+
+	PROCEDURE <em>Get</em>(n: INTEGER; VAR arg: ARRAY OF CHAR; VAR res: INTEGER);
+<span class='comment'>(*returns in arg the n:th command line argument (0 &lt;= n &lt; count). If the size of arg is not large enough to hold the result of the operation, the result is truncated so that arg is always terminated with a 0X. The residual number of truncated characters is assigned to res.*)</span>
+
+END extArgs.
+</pre>
+	</body>
+</html>

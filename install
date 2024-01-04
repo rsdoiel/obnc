@@ -88,8 +88,8 @@ Install()
 	rm -r "lib/obnc/.obnc"
 
 	#install extended library
-	mkdir -p "$destdir$prefix/include/obnc/ext"
-	mkdir -p "$destdir$prefix/$libdir/obnc/ext"
+	EchoAndRun mkdir -p "$destdir$prefix/include/obnc/ext"
+	EchoAndRun mkdir -p "$destdir$prefix/$libdir/obnc/ext"
 	rm -rf "lib/obnc/ext/.obnc"
 	local module=
 	for module in $extModules; do
@@ -117,9 +117,14 @@ Install()
 		EchoAndRun cp "share/doc/obnc/$file" "$destdir$prefix/share/doc/obnc"
 	done
 	(cd "lib/obnc" && OBNC_PREFIX="$selfDirPath" ../../bin/obncdoc)
-	EchoAndRun mkdir -p "$destdir$prefix/share/doc/obnc/obncdoc/obnc"
+	EchoAndRun mkdir -p "$destdir$prefix/share/doc/obnc/obncdoc/basic"
 	for file in "lib/obnc/obncdoc"/*; do
-		EchoAndRun cp "$file" "$destdir$prefix/share/doc/obnc/obncdoc/obnc"
+		EchoAndRun cp "$file" "$destdir$prefix/share/doc/obnc/obncdoc/basic"
+	done
+	(cd "lib/obnc/ext" && OBNC_PREFIX="$selfDirPath" ../../../bin/obncdoc)
+	EchoAndRun mkdir -p "$destdir$prefix/share/doc/obnc/obncdoc/ext"
+	for file in "lib/obnc/ext/obncdoc"/*; do
+		EchoAndRun cp "$file" "$destdir$prefix/share/doc/obnc/obncdoc/ext"
 	done
 	EchoAndRun cd "$destdir$prefix/share/doc/obnc/obncdoc"
 	EchoAndRun "$selfDirPath/bin/obncdoc-index" \> index.html
@@ -179,7 +184,8 @@ Uninstall()
 	for file in $docFiles; do
 		EchoAndRun rm -f "$destdir$prefix/share/doc/obnc/$file"
 	done
-	EchoAndRun rm -f "$destdir$prefix/share/doc/obnc/obncdoc/obnc/"*
+	EchoAndRun rm -f "$destdir$prefix/share/doc/obnc/obncdoc/basic/"*
+	EchoAndRun rm -f "$destdir$prefix/share/doc/obnc/obncdoc/ext/"*
 	EchoAndRun rm -f "$destdir$prefix/share/doc/obnc/obncdoc/index.html"
 	EchoAndRun rm -f "$destdir$prefix/share/doc/obnc/obncdoc/style.css"
 
@@ -190,6 +196,20 @@ Uninstall()
 
 	#delete obncdoc style file
 	EchoAndRun rm -f "$destdir$prefix/share/obnc/style.css"
+
+	#delete obnc directories which have been emptied on files
+	if [ -z "$(find "$destdir$prefix/include/obnc" -type f 2>/dev/null)" ]; then
+		EchoAndRun rm -fr "$destdir$prefix/include/obnc"
+	fi
+	if [ -z "$(find "$destdir$prefix/$libdir/obnc" -type f 2>/dev/null)" ]; then
+		EchoAndRun rm -fr "$destdir$prefix/$libdir/obnc"
+	fi
+	if [ -z "$(find "$destdir$prefix/share/doc/obnc" -type f 2>/dev/null)" ]; then
+		EchoAndRun rm -fr "$destdir$prefix/share/doc/obnc"
+	fi
+	if [ -z "$(find "$destdir$prefix/share/obnc" -type f 2>/dev/null)" ]; then
+		EchoAndRun rm -fr "$destdir$prefix/share/obnc"
+	fi
 }
 
 

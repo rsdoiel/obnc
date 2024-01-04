@@ -26,13 +26,13 @@ readonly testDir="$packagePath/tests/obncdoc"
 (cd "$testDir" && "$selfDirPath/obncdoc")
 trap "rm -f '$testDir'/obncdoc/* && rmdir '$testDir/obncdoc'" INT TERM EXIT
 
-if ! diff -b "$testDir/obncdoc/NoExportedFeatures.def" "$testDir/NoExportedFeatures.def"; then
-	echo "$(basename "$0") failed: files differ: $testDir/obncdoc/NoExportedFeatures.def" "$testDir/NoExportedFeatures.def" >&2
+if [ -e "$testDir/obncdoc/NoExportedFeatures.def" ]; then
+	echo "$(basename "$0") failed: no output file expected when nothing is exported: $testDir/obncdoc/NoExportedFeatures.def" >&2
 	exit 1
 fi
 
-if ! diff -b "$testDir/obncdoc/NoExportedFeatures.def.html" "$testDir/NoExportedFeatures.def.html"; then
-	echo "$(basename "$0") failed: files differ: $testDir/obncdoc/NoExportedFeatures.def.html" "$testDir/NoExportedFeatures.def.html" >&2
+if [ -e "$testDir/obncdoc/NoExportedFeatures.def.html" ]; then
+	echo "$(basename "$0") failed: no output file expected when nothing is exported: $testDir/obncdoc/NoExportedFeatures.def.html" >&2
 	exit 1
 fi
 

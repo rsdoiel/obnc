@@ -16,12 +16,12 @@ You should have received a copy of the GNU General Public License
 along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "Config.h"
+#include "ElapsedTime.h"
 #include "Error.h"
 #include "Files.h"
 #include "ModulePaths.h"
 #include "Paths.h"
 #include "StackTrace.h"
-#include "Time.h"
 #include "Util.h"
 #include <sys/stat.h> /*POSIX*/
 #include <assert.h>
@@ -277,9 +277,9 @@ static void CompileOberon(const char module[], const char dir[], int isEntryPoin
 	if (verbosity == 2) {
 		puts(command);
 	}
-	start = Time();
+	start = ElapsedTime();
 	error = system(command);
-	obncCompileTotalTime += Time() - start;
+	obncCompileTotalTime += ElapsedTime() - start;
 	if (error) {
 		Error_Handle("");
 	}
@@ -400,9 +400,9 @@ static void CompileC(const char module[], const char dir[])
 			&& (strstr(cFlags, "OBNC_CONFIG_TARGET_EMB=") != NULL)) {
 		Error_Handle("OBNC_CONFIG_NO_GC and OBNC_CONFIG_TARGET_EMB cannot be used simultaneously");
 	}
-	start = Time();
+	start = ElapsedTime();
 	error = system(command);
-	ccCompileTotalTime += Time() - start;
+	ccCompileTotalTime += ElapsedTime() - start;
 	if (error) {
 		Error_Handle("");
 	}
@@ -713,12 +713,12 @@ static void CreateExecutable(const char *inputFiles[], int inputFilesLen)
 	} else if (verbosity == 2) {
 		printf("\nCreating executable %s:\n\n%s\n", executableFile, command);
 	}
-	start = Time();
+	start = ElapsedTime();
 	error = system(command);
 	if (buildUnified) {
-		ccTotalTime = Time() - start;
+		ccTotalTime = ElapsedTime() - start;
 	} else {
-		ccLinkTotalTime += Time() - start;
+		ccLinkTotalTime += ElapsedTime() - start;
 	}
 	if (error) {
 		Error_Handle("");
@@ -731,7 +731,7 @@ static void PrintTimeFractions(int startTime)
 	int elapsedTotal, obncPercent, obncCompilePercent, ccCompilePercent = 0, ccLinkPercent = 0, ccPercent = 0;
 	const char *cc;
 
-	elapsedTotal = Time() - startTime;
+	elapsedTotal = ElapsedTime() - startTime;
 	obncCompilePercent = (int) ((double) obncCompileTotalTime / (double) elapsedTotal * 100.0 + 0.5);
 	if (buildUnified) {
 		ccPercent = (int) ((double) ccTotalTime / (double) elapsedTotal * 100.0 + 0.5);
@@ -862,7 +862,7 @@ int main(int argc, char *argv[])
 	int i, hSet = 0, vSet = 0, VSet = 0;
 	const char *arg, *inputFile = NULL, *fileSuffix;
 
-	startTime = Time();
+	startTime = ElapsedTime();
 	Config_Init();
 	Error_Init();
 	Files_Init();

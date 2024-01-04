@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+	<head>
+		<meta name='viewport' content='width=device-width, initial-scale=1.0' />
+		<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+		<title>DEFINITION extConvert</title>
+		<link rel='stylesheet' type='text/css' href='style.css' />
+	</head>
+	<body>
+		<p><a href='index.html'>Index</a></p>
+
+		<pre>
+DEFINITION <em>extConvert</em>;
+<span class='comment'>(*Conversions between numbers and strings
+
+All conversions from a string skips over preceeding whitespace.*)</span>
+
+	PROCEDURE <em>IntToString</em>(i: INTEGER; VAR s: ARRAY OF CHAR; VAR done: BOOLEAN);
+<span class='comment'>(*IntToString(i, s, d) returns in s the decimal representation of i. If s is large enough to hold the result, d is set to TRUE. Otherwise d is set to FALSE.*)</span>
+
+	PROCEDURE <em>RealToString</em>(x: REAL; VAR s: ARRAY OF CHAR; VAR done: BOOLEAN);
+<span class='comment'>(*RealToString(x, s, d) returns in s a string representation of x. If s is large enough to hold the result, d is set to TRUE. Otherwise d is set to FALSE.*)</span>
+
+	PROCEDURE <em>StringToInt</em>(s: ARRAY OF CHAR; VAR i: INTEGER; VAR done: BOOLEAN);
+<span class='comment'>(*StringToInt(s, i, d) returns in i the integer constant in s according to the format
+
+	integer = digit {digit} | digit {hexDigit} "H".
+	hexDigit = digit | "A" | "B" | "C" | "D" | "E" | "F".
+
+d indicates the success of the operation.*)</span>
+
+	PROCEDURE <em>StringToReal</em>(s: ARRAY OF CHAR; VAR x: REAL; VAR done: BOOLEAN);
+<span class='comment'>(*StringToReal(s, x, d) returns in x the real number in s according to the format
+
+	real = digit {digit} "." {digit} [ScaleFactor].
+	ScaleFactor = "E" ["+" | "-"] digit {digit}.
+
+d indicates the success of the operation.*)</span>
+
+END extConvert.
+</pre>
+	</body>
+</html>

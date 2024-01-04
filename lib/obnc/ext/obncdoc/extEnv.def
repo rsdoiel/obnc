@@ -1,0 +1,7 @@
+DEFINITION extEnv;
+(*Access to environment variables.*)
+
+	PROCEDURE Get(name: ARRAY OF CHAR; VAR value: ARRAY OF CHAR; VAR res: INTEGER);
+(*Get(nm, val, res) returns in val the value of an environment variable with the name nm, or the empty string if the variable is undefined. If the variable is defined, the number of truncated characters is assigned to res, else res is -1.*)
+
+END extEnv.

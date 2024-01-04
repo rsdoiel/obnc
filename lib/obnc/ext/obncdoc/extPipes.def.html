@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+	<head>
+		<meta name='viewport' content='width=device-width, initial-scale=1.0' />
+		<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+		<title>DEFINITION extPipes</title>
+		<link rel='stylesheet' type='text/css' href='style.css' />
+	</head>
+	<body>
+		<p><a href='index.html'>Index</a></p>
+
+		<pre>
+DEFINITION <em>extPipes</em>;
+<span class='comment'>(*Procedures for executing commands and reading their output or writing their input*)</span>
+
+	TYPE
+		Stream = POINTER TO RECORD
+			eof: BOOLEAN
+		END;
+
+	PROCEDURE <em>OpenRead</em>(command: ARRAY OF CHAR; VAR stream: Stream);
+<span class='comment'>(*OpenRead(c, s) executes the command specified by c and creates a pipeline between the calling program and the executed command. If opening the stream was successful, s is set to the the standard output stream of the command. If opening the stream failed, s is set to NIL.*)</span>
+
+	PROCEDURE <em>OpenWrite</em>(command: ARRAY OF CHAR; VAR stream: Stream);
+<span class='comment'>(*OpenWrite(c, s) executes the command specified by c and creates a pipeline between the calling program and the executed command. If opening the stream was successful, s is set to the the standard input stream of the command. If opening the stream failed, s is set to NIL.*)</span>
+
+	PROCEDURE <em>Read</em>(stream: Stream; VAR ch: CHAR);
+<span class='comment'>(*Read(s, ch) reads the next character from s and returns it in ch. The field s.eof is set to TRUE if an attempt was made to read beyond the end of the file.*)</span>
+
+	PROCEDURE <em>Write</em>(ch: CHAR; stream: Stream);
+<span class='comment'>(*Write(ch, s) writes ch to s. The field s.eof is set to TRUE if the operation was not successful.*)</span>
+
+	PROCEDURE <em>Close</em>(stream: Stream; VAR exitCode: INTEGER);
+<span class='comment'>(*Close(s, c) closes the stream s that was opened by OpenRead or OpenWrite. Output parameter c is assigned the exit code of the command language interpreter which executed the command, or -1 if closing the stream failed.*)</span>
+
+<span class='comment'>(*Example:
+
+MODULE listfiles;
+
+	IMPORT Err := extErr, Out, Pipes := extPipes;
+
+	VAR
+		stream: Pipes.Stream;
+		ch: CHAR;
+		exitCode: INTEGER;
+
+BEGIN
+	Pipes.OpenRead("ls", stream);
+	IF stream # NIL THEN
+		Pipes.Read(stream, ch);
+		WHILE ~stream.eof DO
+			Out.Char(ch);
+			Pipes.Read(stream, ch)
+		END;
+		Pipes.Close(stream, exitCode);
+		IF exitCode &gt; 0 THEN
+			Err.String("command 'ls' failed");
+			Err.Ln;
+			ASSERT(FALSE)
+		END
+	ELSE
+		Err.String("opening a pipe failed");
+		Err.Ln;
+		ASSERT(FALSE)
+	END
+END listfiles.
+*)</span>
+
+END extPipes.
+</pre>
+	</body>
+</html>
