@@ -6,20 +6,25 @@
 # It setups the symbolic links into a RISCOS sub-directory used for the port.
 #
 function symlink_for_riscos() {
-	EXT="$1"
-	mkdir -p "RISCOS/${EXT:1}"
+	SDIR="$1"
+	EXT="$2"
 	
 	# Symlink to the .c files
-	P="src/*${EXT}"
+	P="${SDIR}/*${EXT}"
 	for FNAME in $(ls -1 ${P}); do
+		#FIXME: Need to handle mapping subfolders appropriately
+        SRC_TYPE_DIR="RISCOS/${EXT:1}"
+        if [ ! -d  "$SRC_TYPE_DIR" ]; then
+	    	mkdir -p "${SRC_TYPE_DIR}"
+		fi
 	    LINK="$(basename "${FNAME}" "${EXT}")"
-	    echo "ln ${FNAME} RISCOS/${EXT:1}/${LINK},fff"
-	    ln ${FNAME} RISCOS/${EXT:1}/${LINK},fff
+	    echo "ln ${FNAME} ${SRC_TYPE_DIR}/${LINK},fff"
+	    ln ${FNAME} ${SRC_TYPE_DIR}/${LINK},fff
 	done
 }
 rm -fR RISCOS
-symlink_for_riscos '.c'
-symlink_for_riscos '.h'
-symlink_for_riscos '.l'
-symlink_for_riscos '.y'
-symlink_for_riscos '.env'
+symlink_for_riscos 'src' '.c'
+symlink_for_riscos 'src' '.h'
+symlink_for_riscos 'src' '.l'
+symlink_for_riscos 'src' '.y'
+symlink_for_riscos 'src' '.env'
