@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -495,28 +495,24 @@ static void UpdateObjectFile(const char module[], const char dir[], int stale, i
 }
 
 
-static int FilesEqual(const char f1[], const char f2[])
+static int SymFileIsSubset(const char file1[], const char file2[]) /*true iff all declarations in file1 exist in file2*/
 {
-	FILE *fp1, *fp2;
-	int ch1, ch2;
+	const char *command;
+	int sysExitCode;
 
-	fp1 = Files_Old(f1, FILES_READ);
-	fp2 = Files_Old(f2, FILES_READ);
-	do {
-		ch1 = getc(fp1);
-		ch2 = getc(fp2);
-	} while ((ch1 != EOF) && (ch1 == ch2));
-	Files_Close(&fp1);
-	Files_Close(&fp2);
-
-	return (ch1 == EOF) && (ch2 == EOF);
+	command = Util_String("awk %s %s %s",
+		Paths_ShellArg("FNR == 1 { next } FILENAME == ARGV[1] { lines[$0] = 1; next } FILENAME == ARGV[2] && ! lines[$0] { exit 1 }"),
+		Paths_ShellArg(file2),
+		Paths_ShellArg(file1));
+	sysExitCode = system(command);
+	return sysExitCode == 0;
 }
 
 
 static void Traverse1(const char module[], const char dir[], ModuleList nodePath, int isRoot, ModuleList *discoveredModules)
 {
 	char **importedFiles;
-	int stale, symFileChanged, importedFilesLen, i;
+	int stale, newSymFileCompatible, importedFilesLen, i;
 	const char *importedModule, *importedModuleDir, *oberonFile, *symFile, *symBakFile;
 	ModuleList newNodePath, p, moduleNode;
 
@@ -540,24 +536,22 @@ static void Traverse1(const char module[], const char dir[], ModuleList nodePath
 		}
 	}
 
-	symFileChanged = 0;
+	newSymFileCompatible = 1;
 	oberonFile = ModulePaths_SourceFile(module, dir);
 	if (Files_Exists(oberonFile)) {
 		UpdateObjectFile(module, dir, stale, isRoot);
 
-		/*find out if the symbol file has changed*/
+		/*find out if the symbol file has changed in incompatible ways, i.e. if exported declarations have been changed or deleted*/
 		symFile = Util_String("%s/.obnc/%s.sym", dir, module);
 		symBakFile = Util_String("%s.bak", symFile);
 		if (Files_Exists(symFile) && Files_Exists(symBakFile)) {
-			if (! FilesEqual(symFile, symBakFile)) {
-				symFileChanged = 1;
-			}
+			newSymFileCompatible = SymFileIsSubset(symBakFile, symFile);
 			Files_Remove(symBakFile);
 		}
 	}
 	moduleNode = MatchingModuleNode(module, dir, *discoveredModules);
 	assert(moduleNode != NULL);
-	moduleNode->stale = symFileChanged;
+	moduleNode->stale = ! newSymFileCompatible;
 }
 
 

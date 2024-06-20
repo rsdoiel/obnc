@@ -6,7 +6,7 @@
 #
 #Builds an executable with MODULE.c as entry point. Imported modules are compiled or recompiled as needed. For any module M, compiler, compiler flags, link flags and link libraries specific to M can be specified by setting the variables CC, CFLAGS, LDFLAGS and LDLIBS respectively in a file named M.env.
 
-# Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+# Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #

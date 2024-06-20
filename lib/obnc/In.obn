@@ -1,4 +1,4 @@
-(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -55,7 +55,7 @@ Implements the basic library module from "The Oakwood Guidelines for Oberon-2 Co
 
 
 	PROCEDURE Line*(VAR line: ARRAY OF CHAR);
-(**Line(s) returns in s the sequence of characters from the current position to the end of the line. NOTE: This procedure is an extension to The Oakwood Guidelines.*)
+(**Line(s) returns in s the sequence of characters from the current position to the end of the line. If the size of s is not large enough to hold the result of the operation, the result is truncated so that s is always terminated with a 0X, the rest of the line is consumed and Done is set to FALSE. NOTE: This procedure is an extension to The Oakwood Guidelines.*)
 	END Line;
 
 END In.

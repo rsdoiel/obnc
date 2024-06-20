@@ -1,4 +1,4 @@
-(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -76,5 +76,13 @@ BEGIN
 
 	In.Line(s);
 	ASSERT(In.Done);
-	ASSERT(s = "foo bar")
+	ASSERT(s = "foo bar");
+
+	In.Line(s);
+	ASSERT(~In.Done);
+	ASSERT(s = "foo bar baz");
+
+	In.Line(s);
+	ASSERT(In.Done);
+	ASSERT(s = "foo bar baz")
 END InTest.

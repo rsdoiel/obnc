@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -173,19 +173,21 @@ void In__Line_(char line[], OBNC_INTEGER lineLen)
 
 	i = 0;
 	ch = getchar();
-	while ((ch != EOF) && (ch != '\n') && (i < lineLen)) {
-		line[i] = (char) ch;
+	while ((ch != EOF) && (ch != '\n')) {
+		if (i < lineLen) {
+			line[i] = (char) ch;
+		}
 		i++;
 		ch = getchar();
 	}
 	if ((i > 0) || (ch == '\n')) {
 		inputConsumed = 1;
 	}
-	if (((ch != EOF) && (i < lineLen)) || ((ch == EOF) && (i > 0))) {
+	if (i < lineLen) {
 		line[i] = '\0';
 		In__Done_ = 1;
 	} else {
-		line[0] = '\0';
+		line[lineLen - 1] = '\0';
 		In__Done_ = 0;
 	}
 }

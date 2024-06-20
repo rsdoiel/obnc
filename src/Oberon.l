@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License
 along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 
 %option always-interactive
+%option noinput nounput
+%x comment
 
 %{
 #include "Oberon.h"
@@ -31,6 +33,9 @@ along with OBNC.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static int commentNestingLevel;
+static int commentStartLine;
 
 static int KeywordToken(const char word[]);
 
@@ -138,42 +143,33 @@ ORDINAL-STRING [0-9][0-9A-F]*X
 }
 
 "(*" {
-	int linenoStart, level, ch;
+	BEGIN(comment);
+	commentNestingLevel = 1;
+	commentStartLine = yylineno;
+}
 
-	linenoStart = yylineno;
-	level = 1;
-	do {
-		ch = input();
-		switch (ch) {
-			case '(':
-				ch = input();
-				if (ch == '*') {
-					level++;
-				} else {
-					unput(ch);
-				}
-				break;
-			case '*':
-				ch = input();
-				if (ch == ')') {
-					level--;
-				} else {
-					unput(ch);
-				}
-				break;
-			case '\n':
-				yylineno++;
-				break;
-		}
-	} while ((level > 0) && (ch > 0));
-	assert((ch >= 0) || (ch == EOF));
+<comment>[^*(\n]+
 
-	/*Note: In Flex 2.6.0 and earlier, input returns EOF (-1) instead of 0 when end-of-file is reached.*/
+<comment>\n {
+	yylineno++;
+}
 
-	if (level > 0) {
-		Oberon_PrintError("error: unterminated comment starting at line %d", linenoStart);
-		exit(EXIT_FAILURE);
+<comment>"*"+/[^)]
+
+<comment>"("+/[^*]
+
+<comment>"(*" commentNestingLevel++;
+
+<comment>"*)" {
+	commentNestingLevel--;
+	if (commentNestingLevel == 0) {
+		BEGIN(INITIAL);
 	}
+}
+
+<comment><<EOF>> {
+	Oberon_PrintError("error: unterminated comment starting at line %d", commentStartLine);
+	exit(EXIT_FAILURE);
 }
 
 . {

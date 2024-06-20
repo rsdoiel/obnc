@@ -1,0 +1,4 @@
+DEFINITION ExportedCommentOnly;
+(*A module may have an exported comment like this but otherwise no exported identifiers.*)
+
+END ExportedCommentOnly.

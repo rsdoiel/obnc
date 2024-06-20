@@ -1,4 +1,4 @@
-(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -233,6 +233,23 @@ MODULE T6ProcedureDeclarations;
 	END TestLocalProcedures;
 
 
+	PROCEDURE Sum(a: ARRAY OF INTEGER; n: INTEGER): INTEGER;
+
+		PROCEDURE Sum(a: ARRAY OF INTEGER; n, s: INTEGER): INTEGER;
+			VAR result: INTEGER;
+		BEGIN
+			IF n > 0 THEN
+				result := Sum(a, n - 1, s + a[n - 1]) (*should call itself*)
+			ELSE
+				result := s
+			END
+		RETURN result
+		END Sum;
+
+	RETURN Sum(a, n, 0) (*should call local procedure*)
+	END Sum;
+
+
 	PROCEDURE TestScope;
 		TYPE
 			List = POINTER TO Node;
@@ -244,9 +261,13 @@ MODULE T6ProcedureDeclarations;
 		VAR
 			TestScope: PROCEDURE;
 			p: Proc;
+			a: ARRAY 2 OF INTEGER;
 	BEGIN
 		TestScope := NIL;
-		p := NIL
+		p := NIL;
+		a[0] := 1;
+		a[1] := 2;
+		ASSERT(Sum(a, 2) = 3)
 	END TestScope;
 
 BEGIN

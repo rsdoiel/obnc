@@ -75,4 +75,11 @@ tests/obnc/passing/T3VariableDeclarations
 tests/obnc/passing/T4Expressions
 tests/obnc/passing/T5Statements
 tests/obnc/passing/T6ProcedureDeclarations
+lib/obnc/ext/ArgsTest
+lib/obnc/ext/ConvertTest
+lib/obnc/ext/EnvTest
+lib/obnc/ext/ErrTest
+lib/obnc/ext/PipesTest
+lib/obnc/ext/TrapTest
+tests/obnc/passing/T7Modules
 tmp

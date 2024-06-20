@@ -1,0 +1,6 @@
+MODULE ExportedCommentOnly;
+(**A module may have an exported comment like this but otherwise no exported identifiers.*)
+
+	CONST c = 37;
+
+END ExportedCommentOnly.

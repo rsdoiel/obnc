@@ -1,4 +1,4 @@
-(*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+(*Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -221,14 +221,9 @@ MODULE T5Statements;
 		VAR p: PT; p1: PT1; p2: PT2;
 			f: FT; f1: FT1; f2, g2: FT2;
 			n: INTEGER;
-
-		PROCEDURE Local;
-		END Local;
-
 	BEGIN
 		p := NIL;
 		p := P;
-		p := Local;
 		p1 := P1;
 		p2 := P2;
 		f := F;

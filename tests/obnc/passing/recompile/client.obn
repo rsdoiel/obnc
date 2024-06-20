@@ -1,0 +1,7 @@
+MODULE client;
+
+	IMPORT M;
+
+BEGIN
+	IF M.a = 1 THEN END; (*mute note about unused module M*)
+END client.

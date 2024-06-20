@@ -1,6 +1,6 @@
 #!/usr/bin/awk -f
 
-# Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+# Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -342,7 +342,7 @@ END {
 			hasExportedIdent = 1
 		}
 	}
-	if (hasExportedIdent) {
+	if (hasExportedIdent || sectionHasExportedComment["MODULE"]) {
 		for (i = 1; i <= sectionsLen; i++) {
 			section = sections[i]
 			if (sectionExported[section]) {

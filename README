@@ -57,7 +57,7 @@ share/man/man1/
 
 LICENSE
 
-OBNC is released under the GNU General Public License (see file COPYING), with the exception of library source files in lib/obnc which are released under the Mozilla Public License (see file lib/obnc/LICENSE).
+OBNC is released under the GNU General Public License (see file COPYING), with the exception of library source files in lib/obnc which are released under the Mozilla Public License (see file lib/obnc/LICENSE). Copyright years written as a range means that each year in the range is "copyrightable."
 
 
 AUTHOR

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+# Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 #
 # This file is part of OBNC.
 #
@@ -93,6 +93,43 @@ for def in OBNC_CONFIG_C_INT_TYPE=OBNC_CONFIG_SHORT \
 		exit 1
 	fi
 done
+
+#verify that adding exported declarations to a server module does not cause the client module to be recompiled (only changed or deleted exported declarations should cause recompilation of client modules)
+dir="$packagePath/tests/obnc/passing/recompile"
+Run cd "$dir"
+if Run "$packagePath/bin/obnc" client.obn; then
+	cp M.obn M.obn.bak
+	trap "mv \"$dir/M.obn.bak\" \"$dir/M.obn\"" EXIT
+	sleep 1
+	sed -i 's/a* = 1;/\0b* = 2;/' M.obn
+	sleep 1
+	if Run "$packagePath/bin/obnc" client.obn; then
+		if [ .obnc/client.c -ot M.obn ]; then
+			#reverting the server module should now trigger a recompilation of the client
+			sleep 1
+			cp M.obn.bak M.obn
+			sleep 1
+			if Run "$packagePath/bin/obnc" client.obn; then
+				if [ .obnc/client.c -ot M.obn ]; then
+					printf "\nPositive test failed: recompilation of %s expected\n\n" "$dir/client.obn" >&2
+					exit 1
+				fi
+			else
+				printf "\nPositive test failed: second recompilation of %s failed\n\n" "$dir/client.obn" >&2
+				exit 1
+			fi
+		else
+			printf "\nPositive test failed: erroneous recompilation of %s\n\n" "$dir/client.obn" >&2
+			exit 1
+		fi
+	else
+		printf "\nPositive test failed: recompilation of %s failed\n\n" "$dir/client.obn" >&2
+		exit 1
+	fi
+else
+	printf "\nPositive test failed: %s\n\n" "$dir/client.obn" >&2
+	exit 1
+fi
 
 dir="$packagePath/tests/obnc/failing-at-compile-time"
 Run cd "$dir"

@@ -1,4 +1,4 @@
-/*Copyright 2017, 2018, 2019, 2023 Karl Landstrom <karl@miasap.se>
+/*Copyright 2017-2019, 2023, 2024 Karl Landstrom <karl@miasap.se>
 
 This file is part of OBNC.
 
@@ -2666,8 +2666,10 @@ static Trees_Node Designator(const char identName[], Trees_Node selectorList)
 	qualidentSym = NULL;
 	qualidentSelectorList = NULL;
 	identSym = Table_At(identName);
-	if ((identSym == NULL) && (procedureDeclarationStack != NULL)
+	if (((identSym == NULL) || ((Trees_Kind(identSym) == TREES_PROCEDURE_KIND) && ! Trees_Local(identSym)))
+			&& (procedureDeclarationStack != NULL)
 			&& (strcmp(identName, Trees_Name(Trees_Left(procedureDeclarationStack))) == 0)) {
+		/*recursive call in local procedure*/
 		qualidentSym = Trees_Left(procedureDeclarationStack);
 		qualidentSelectorList = selectorList;
 	} else {
@@ -3414,12 +3416,16 @@ static void ValidateAssignment(Trees_Node expression, Trees_Node targetType, int
 	assert(context >= 0);
 	assert(paramPos >= 0);
 
+	errorContext = AssignmentErrorContext(context, paramPos);
 	if (Types_AssignmentCompatible(expression, targetType)) {
 		if (Types_IsByte(targetType) && IsInteger(expression)) {
 			Range_CheckByte(Trees_Integer(expression));
 		}
+		if (IsDesignator(expression) && (Trees_Kind(BaseIdent(expression)) == TREES_PROCEDURE_KIND) && Trees_Local(BaseIdent(expression))) {
+			Oberon_PrintError("error: globally declared procedure expected in %s", errorContext);
+			exit(EXIT_FAILURE);
+		}
 	} else {
-		errorContext = AssignmentErrorContext(context, paramPos);
 		if (IsString(expression) && Types_IsCharacterArray(targetType) && ! Types_IsOpenArray(targetType)) {
 			Oberon_PrintError("error: string too long in %s: %" OBNC_INT_MOD "d + 1 > %" OBNC_INT_MOD "d", errorContext, Types_StringLength(Trees_Type(expression)), Trees_Integer(Types_ArrayLength(targetType)));
 			exit(EXIT_FAILURE);
